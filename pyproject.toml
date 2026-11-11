@@ -1,7 +1,7 @@
 [project]
 name = "shopstore"
 version = "0.1.0"
-description = "Add your description here"
+description = "E-commerce storefront and backend: FastAPI, PostgreSQL, Redis, RQ, React 19, Telegram Mini App and SBP payments"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
