@@ -1,0 +1,106 @@
+{% set ops = overview.ops if overview.ops is defined else {} %}
+{% set tel = ops.get('dom_telemetry', {}) %}
+{% set tel_1h = tel.get('window_1h', {}) %}
+{% set tel_24h = tel.get('window_24h', {}) %}
+{% set lanes_1h = tel.get('lanes_1h', {}) %}
+{% set tel_has_data = tel.get('has_data', false) %}
+{% set challenge = ops.get('challenge', {}) %}
+{% set redis = overview.redis if overview.redis is defined else {'ok': false} %}
+{% set lanes_data = overview.lanes_overview if overview.lanes_overview is defined else {} %}
+{% set lanes = lanes_data.lanes if lanes_data.lanes is defined else [] %}
+
+<details class="parsing-v2__collapse">
+  <summary class="parsing-v2__collapse-trigger">
+    <span aria-hidden="true">≡</span>
+    <span>Технические метрики</span>
+    <small>anti-bot · pacing · recovery · 1 ч</small>
+    <span class="parsing-v2__chevron" aria-hidden="true">›</span>
+  </summary>
+  <div class="parsing-v2__collapse-body parsing-v2__tech-grid">
+    <div class="parsing-v2__metric">
+      <span>HTTP блок</span>
+      <strong>{% if tel_has_data %}{{ tel_1h.get('http_blocked_pct', 0) }}%{% else %}—{% endif %}</strong>
+    </div>
+    <div class="parsing-v2__metric">
+      <span>CF challenge</span>
+      <strong class="{% if tel_1h.get('challenge_ratio_pct', 0) >= 20 %}is-warn{% endif %}">
+        {% if tel_has_data %}{{ tel_1h.get('challenge_ratio_pct', 0) }}%{% else %}—{% endif %}
+      </strong>
+    </div>
+    <div class="parsing-v2__metric">
+      <span>Восстановление</span>
+      <strong>{% if tel_has_data %}{{ tel_1h.get('recovery_ratio_pct', 0) }}%{% else %}—{% endif %}</strong>
+    </div>
+    <div class="parsing-v2__metric">
+      <span>Пауза pacing</span>
+      <strong>{% if tel_has_data %}{{ tel_1h.get('pacing_overhead_pct', 0) }}%{% else %}—{% endif %}</strong>
+    </div>
+    <div class="parsing-v2__metric">
+      <span>Задержка, мс</span>
+      <strong>{% if tel_has_data %}{{ tel_1h.get('avg_latency_ms', 0) }}{% else %}—{% endif %}</strong>
+    </div>
+    <div class="parsing-v2__metric">
+      <span>Торможение</span>
+      <strong class="{% if tel_1h.get('throttle_cooldowns', 0) %}is-warn{% endif %}">
+        {% if tel_has_data %}{{ tel_1h.get('throttle_cooldowns', 0) }}{% else %}—{% endif %}
+      </strong>
+    </div>
+    <div class="parsing-v2__metric">
+      <span>Чанков / 1 ч</span>
+      <strong>{% if tel_has_data %}{{ tel_1h.get('chunks', 0) }}{% else %}—{% endif %}</strong>
+    </div>
+    <div class="parsing-v2__metric">
+      <span>CF fail / 1 ч</span>
+      <strong>{{ challenge.get('failures_1h', 0) }}</strong>
+    </div>
+    <div class="parsing-v2__metric">
+      <span>Redis</span>
+      <strong class="{% if not redis.ok %}is-err{% endif %}">{% if redis.ok %}онлайн{% else %}офлайн{% endif %}</strong>
+    </div>
+    <div class="parsing-v2__metric">
+      <span>Исчерпали попытки</span>
+      <strong class="{% if ops.get('exhausted', 0) %}is-warn{% endif %}">{{ ops.get('exhausted', 0) }}</strong>
+    </div>
+    <div class="parsing-v2__metric">
+      <span>Ждут повтора</span>
+      <strong>{{ ops.get('cooldown', 0) }}</strong>
+    </div>
+    <div class="parsing-v2__metric">
+      <span>Последний chunk</span>
+      <strong class="parsing-v2__mono">{% if tel.last_at_msk %}{{ tel.last_at_msk }}{% else %}—{% endif %}</strong>
+    </div>
+  </div>
+
+  {% if lanes %}
+  <div class="parsing-v2__lane-telemetry">
+    <h3 class="parsing-v2__subtitle">Telemetry по lane · 1 ч</h3>
+    <div class="parsing-v2__lane-telemetry-grid">
+      {% for lane in lanes %}
+      {% set lane_id = lane.lane_id|string %}
+      {% set lane_tel = lanes_1h.get(lane_id, {}) %}
+      <div class="parsing-v2__lane-telemetry-card">
+        <strong>Lane {{ lane_id }}</strong>
+        <div class="parsing-v2__metric">
+          <span>Чанков</span>
+          <strong>{% if lane_tel %}{{ lane_tel.get('chunks', 0) }}{% else %}0{% endif %}</strong>
+        </div>
+        <div class="parsing-v2__metric">
+          <span>CF</span>
+          <strong>{% if lane_tel %}{{ lane_tel.get('challenge_ratio_pct', 0) }}%{% else %}—{% endif %}</strong>
+        </div>
+        <div class="parsing-v2__metric">
+          <span>Recovery</span>
+          <strong>{% if lane_tel %}{{ lane_tel.get('recovery_ratio_pct', 0) }}%{% else %}—{% endif %}</strong>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  <p class="parsing-v2__muted parsing-v2__tech-foot">
+    24 ч: CF {{ tel_24h.get('challenge_ratio_pct', 0) if tel_has_data else '—' }}% ·
+    recovery {{ tel_24h.get('recovery_ratio_pct', 0) if tel_has_data else '—' }}% ·
+    чанков {{ tel_24h.get('chunks', 0) if tel_has_data else '—' }}
+  </p>
+</details>

@@ -1,0 +1,53 @@
+{% macro render_payment_attempts_list(attempts, order_id, has_duplicate_payment) %}
+<details class="orders-payment-tech orders-payment-attempts">
+  <summary class="orders-payment-tech__summary">Попытки оплаты ({{ attempts|length }})</summary>
+  {% if has_duplicate_payment %}
+  <div class="orders-payment-attempts__warning" role="alert">
+    Обнаружена повторная успешная оплата — проверьте возврат вручную.
+  </div>
+  {% endif %}
+  <div class="orders-payment-tech__body">
+    {% for attempt in attempts %}
+    <div class="orders-payment-attempts__row">
+      <div class="orders-payment-attempts__title">Попытка №{{ attempt.attempt_number }}</div>
+      <div class="orders-payment-tech__line">
+        SBP ID:
+        <span class="mono">{{ attempt.provider_order_id or "—" }}</span>
+      </div>
+      <div class="orders-payment-tech__line">
+        merchantOrderId: <span class="mono">{{ attempt.merchant_order_id }}</span>
+      </div>
+      <div class="orders-payment-tech__line">
+        Статус: <span class="mono">{{ attempt.provider_status or "—" }}</span>
+      </div>
+      <div class="orders-payment-tech__line">
+        Сумма: <span class="mono">{{ attempt.payment_amount_minor // 100 }}.{{ '%02d'|format(attempt.payment_amount_minor % 100) }} {{ attempt.payment_currency }}</span>
+      </div>
+      <div class="orders-payment-tech__line">
+        Создана: <span class="mono">{{ attempt.created_at_display or "—" }}</span>
+      </div>
+      <div class="orders-payment-tech__line">
+        QR до: <span class="mono">{{ attempt.qr_expires_at_display or "—" }}</span>
+      </div>
+      <div class="orders-payment-tech__line">
+        Оплачена: <span class="mono">{{ attempt.paid_at_display or "—" }}</span>
+      </div>
+      {% if attempt.provider_status == "DECLINED" and attempt.provider_order_id %}
+      <form
+        method="post"
+        action="/internal/admin/orders/{{ order_id }}/payment-attempts/{{ attempt.id }}/refresh"
+        class="orders-payment-attempts__refresh"
+      >
+        {% include "site/admin/partials/_orders_return_fields.html" %}
+        <button type="submit" class="admin-btn-pill admin-btn-pill--secondary">
+          Проверить статус в SBP
+        </button>
+      </form>
+      {% endif %}
+    </div>
+    {% else %}
+    <div class="orders-payment-tech__line muted">Попыток оплаты нет</div>
+    {% endfor %}
+  </div>
+</details>
+{% endmacro %}

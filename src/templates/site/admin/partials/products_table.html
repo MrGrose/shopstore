@@ -1,0 +1,182 @@
+{% if state.catalog_summary %}
+<span id="admin-products-tree-count-all" class="admin-filter-pill__count" hx-swap-oob="true">{{ state.catalog_summary.get('total', 0) }}</span>
+<span id="admin-products-tree-count-included" class="admin-filter-pill__count" hx-swap-oob="true">{{ state.catalog_summary.get('included', 0) }}</span>
+<span id="admin-products-tree-count-excluded" class="admin-filter-pill__count" hx-swap-oob="true">{{ state.catalog_summary.get('excluded', 0) }}</span>
+<span id="admin-products-tree-count-visible" class="admin-filter-pill__count" hx-swap-oob="true">{{ state.catalog_summary.get('visible', 0) }}</span>
+<span id="admin-products-tree-count-not_visible" class="admin-filter-pill__count" hx-swap-oob="true">{{ state.catalog_summary.get('not_visible', 0) }}</span>
+<span id="admin-products-tree-count-reason-supplier_limit" class="admin-filter-pill__count" hx-swap-oob="true">{{ state.catalog_summary.get('reason_supplier_limit', 0) }}</span>
+<span id="admin-products-tree-count-reason-zero_stock" class="admin-filter-pill__count" hx-swap-oob="true">{{ state.catalog_summary.get('reason_zero_stock', 0) }}</span>
+<span id="admin-products-tree-count-reason-orphan" class="admin-filter-pill__count" hx-swap-oob="true">{{ state.catalog_summary.get('reason_orphan', 0) }}</span>
+<span id="admin-products-tree-count-reason-mapping_excluded" class="admin-filter-pill__count" hx-swap-oob="true">{{ state.catalog_summary.get('reason_mapping_excluded', 0) }}</span>
+<span id="admin-products-page-sub-text" hx-swap-oob="true">{{ state.catalog_summary.get('included', 0) }} в каталоге · {{ state.catalog_summary.get('visible', 0) }} на сайте{% if state.selected_top %} · {{ translate_sport_type(state.selected_top) }}{% endif %}</span>
+{% endif %}
+<div id="admin-products-tree-pills" hx-swap-oob="true">
+  {% include "site/admin/partials/_catalog_tree_pills.html" %}
+</div>
+<div class="products-toolbar">
+  <div class="products-toolbar__row">
+    <div class="products-search">
+    {{ admin_icon('search', 'ico ico--sm products-search__icon') }}
+    <input
+      type="text"
+      class="products-search__input"
+      id="admin-products-search-input"
+      value="{{ search_q }}"
+      placeholder="Название, бренд, ID, артикул"
+      autocomplete="off"
+      onkeydown="if(event.key==='Enter'){event.preventDefault();document.getElementById('admin-products-search-btn').click();}"
+    />
+    <button
+      type="button"
+      id="admin-products-search-clear"
+      class="btn btn--icon btn--ghost products-search__btn"
+      title="Очистить поиск"
+      aria-label="Очистить поиск"
+      {% if not search_q %}hidden{% endif %}
+      hx-get="/internal/admin/products/table"
+      hx-target="#admin-products-table"
+      hx-include="#admin-products-filters"
+      hx-on:htmx:config-request="adminProductsBeforeClearSearchRequest(event)"
+    >{{ admin_icon('x', 'ico--sm') }}</button>
+    <button
+      type="button"
+      id="admin-products-search-btn"
+      class="btn btn--icon products-search__btn"
+      title="Найти"
+      aria-label="Найти"
+      hx-get="/internal/admin/products/table"
+      hx-target="#admin-products-table"
+      hx-include="#admin-products-filters"
+      hx-on:htmx:config-request="adminProductsBeforeSearchRequest(event)"
+    >{{ admin_icon('search', 'ico--sm') }}</button>
+    </div>
+    <select name="top" class="select products-toolbar__select" aria-label="Каталог" hx-get="/internal/admin/products/table" hx-target="#admin-products-table" hx-include="#admin-products-filters" hx-trigger="change" hx-on:htmx:config-request="adminProductsBeforeTopChange(event)">
+      <option value="All" {% if state.selected_top == 'All' %}selected{% endif %}>Все виды</option>
+      {% for t in catalog_top_order %}
+      <option value="{{ t }}" {% if state.selected_top == t %}selected{% endif %}>{{ translate_sport_type(t) }}</option>
+      {% endfor %}
+    </select>
+    {% if state.categories %}
+    <select name="category" class="select products-toolbar__select" aria-label="Категория" hx-get="/internal/admin/products/table" hx-target="#admin-products-table" hx-include="#admin-products-filters" hx-trigger="change" hx-on:htmx:config-request="adminProductsBeforeCategoryChange(event)">
+      <option value="">Категория</option>
+      {% for c in state.categories %}
+      <option value="{{ c }}" {% if state.selected_category == c %}selected{% endif %}>{{ translate_category_l2(c) }}</option>
+      {% endfor %}
+    </select>
+    {% endif %}
+    <select
+      id="admin-products-sort-select"
+      name="sort"
+      class="select products-toolbar__select"
+      aria-label="Сортировка"
+      hx-get="/internal/admin/products/table"
+      hx-target="#admin-products-table"
+      hx-include="#admin-products-filters"
+      hx-trigger="change"
+      hx-on:htmx:config-request="adminProductsBeforeSortChange(event)"
+    >
+      <option value="" {% if not sort %}selected{% endif %}>Сортировка</option>
+      {% for value, label in catalog_admin_sort_options %}
+      <option value="{{ value }}" {% if sort == value %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+    {% if state.selected_category or sort %}
+    <button
+      type="button"
+      id="admin-products-filters-reset"
+      class="btn btn--sm btn--ghost products-toolbar__reset"
+      title="Сбросить категорию и сортировку"
+      hx-get="/internal/admin/products/table"
+      hx-target="#admin-products-table"
+      hx-include="#admin-products-filters"
+      hx-on:htmx:config-request="adminProductsBeforeResetFiltersRequest(event)"
+    >Сбросить</button>
+    {% endif %}
+  </div>
+  <div class="products-toolbar__meta">
+    <span class="products-toolbar__counts">На странице: {{ state.items | length }} · всего в режиме: {{ state.total }}{% if reason is defined and reason != 'all' and tree_reason_views is defined and reason in tree_reason_views %} · {{ tree_reason_views[reason][0] }}{% elif site is defined and site == 'visible' %} · На сайте{% elif site is defined and site == 'not_visible' %} · Не на сайте{% elif inclusion is defined and inclusion == 'excluded' %} · Исключены{% endif %}</span>
+  </div>
+</div>
+
+{% if state.items %}
+<div class="products-list-wrap">
+  <div class="split__scroll admin-orders-list-col products-list" data-list>
+    <div class="products-list-head">
+      <span class="products-row__id-col products-list-head__id">ID</span>
+      <span class="products-list-head__product">Товар</span>
+      <span class="products-list-head__nav">Каталог</span>
+      <span class="products-list-head__stock">Остаток</span>
+      <span class="products-list-head__sync">Дата</span>
+      <span class="products-list-head__eur">EUR</span>
+      <span class="products-list-head__price">Цена</span>
+    </div>
+    {% for item in state.items %}
+    <div class="admin-product-row-wrap {% if selected_id == item.id %}admin-order-row-active{% endif %}">
+      <button
+        type="button"
+        class="lrow admin-order-row admin-product-row products-row {% if selected_id == item.id %}is-active admin-order-row-active{% endif %}"
+        hx-get="/internal/admin/products/{{ item.id }}/detail?view={{ view }}&inclusion={{ inclusion | default('included') }}&site={{ site | default('visible') }}&reason={{ reason | default('all') }}&top={{ state.selected_top }}&page={{ page }}{% if state.selected_category %}&category={{ state.selected_category }}{% endif %}{% if brand %}&brand={{ brand }}{% endif %}{% if search_q %}&q={{ search_q | urlencode }}{% endif %}{% if sort %}&sort={{ sort }}{% elif sort_price %}&sort_price={{ sort_price }}{% endif %}"
+        hx-target="#admin-product-detail"
+        hx-swap="innerHTML"
+        hx-on::after-request="document.querySelector('.products-page--catalog')?.classList.add('products-page--detail-open'); document.querySelectorAll('.admin-product-row').forEach(el => el.classList.remove('admin-order-row-active','is-active')); this.classList.add('admin-order-row-active','is-active'); document.querySelectorAll('.admin-product-row-wrap').forEach(w => w.classList.remove('admin-order-row-active')); this.closest('.admin-product-row-wrap')?.classList.add('admin-order-row-active');"
+      >
+        <span class="products-row__id-col mono">{{ item.id }}</span>
+        {% if item.image_url %}
+        <img class="products-row__thumb" src="{{ item.image_url }}" alt="" />
+        {% else %}
+        <span class="products-row__thumb products-row__thumb--empty">{{ admin_icon('box', 'ico--sm') }}</span>
+        {% endif %}
+        <div class="products-row__body">
+          <div class="products-row__title">{{ item.title }}</div>
+          <div class="products-row__meta">
+            <span class="mono">SKU {{ item.external_id or '—' }}</span>
+            <span>{{ item.brand }}</span>
+          </div>
+        </div>
+        <span class="products-row__nav-col">
+          {% if item.catalog_inclusion == 'included' %}
+          <span class="products-pill products-pill--listed" title="В каталоге">В каталоге</span>
+          {% else %}
+          <span class="products-pill products-pill--unlisted" title="Исключён">Исключён</span>
+          {% endif %}
+          {% if item.storefront_site == 'visible' %}
+          <span class="products-pill products-pill--nav-visible" title="На сайте">На сайте</span>
+          {% elif item.storefront_site == 'not_visible' %}
+          <span class="products-pill products-pill--nav-orphan" title="Не на сайте">Не на сайте</span>
+          {% else %}
+          <span class="products-pill products-pill--nav-muted">—</span>
+          {% endif %}
+          {% for key in item.storefront_hide_reasons %}
+          {% set reason_label = tree_reason_labels.get(key, key) if tree_reason_labels is defined else key %}
+          <span class="products-pill {% if key == 'supplier_limit' %}products-pill--supplier-limit{% else %}products-pill--nav-muted{% endif %}" title="{{ reason_label }}">{{ reason_label }}</span>
+          {% endfor %}
+        </span>
+        {% set stock = item.available_stock or 0 %}
+        <span class="products-row__stock-col">
+          {% if stock == 0 %}
+          <span class="products-pill products-pill--zero">Нет</span>
+          {% elif stock < 5 %}
+          <span class="products-pill products-pill--low">Мало · {{ stock }}</span>
+          {% else %}
+          <span class="products-pill products-pill--stock">{{ stock }} шт.</span>
+          {% endif %}
+        </span>
+        <span
+          class="products-row__sync-col mono"
+          {% if item.catalog_synced_at %}title="Синхр. DOM · {{ format_datetime_msk(item.catalog_synced_at) }}"{% endif %}
+        >{% if item.catalog_synced_at %}{{ format_datetime_msk(item.catalog_synced_at, with_tz_label=False) }}{% else %}—{% endif %}</span>
+        <span class="products-row__eur-col mono">{{ format_eur(item.supplier_price_eur) }}</span>
+        <span class="products-row__price-col mono">{{ item.sale_price }} ₽</span>
+      </button>
+    </div>
+    {% endfor %}
+  </div>
+  {% if total_pages > 1 %}
+  <div class="products-list__pagination">
+    {% include "site/admin/partials/_products_pagination.html" %}
+  </div>
+  {% endif %}
+</div>
+{% else %}
+<div class="empty products-list-empty">{% if search_q %}По запросу «{{ search_q }}» ничего не найдено{% else %}Товаров не найдено{% endif %}</div>
+{% endif %}

@@ -1,0 +1,123 @@
+{% include "site/admin/partials/_orders_status_counts_oob.html" %}
+{% if date_filter_error %}
+<div class="orders-empty orders-empty--compact">
+  {{ admin_icon("alert", "ico orders-empty__icon") }}
+  <p>{{ date_filter_error }}</p>
+</div>
+{% elif orders %}
+{% from "site/admin/partials/_payment_state_pill.html" import render_payment_state_pill %}
+<div class="orders-table-wrap{% if orders_bulk_delete_enabled %} orders-table-wrap--bulk-delete{% endif %}">
+    <div class="admin-table__head orders-table__head">
+    {% if orders_bulk_delete_enabled %}
+    <label class="orders-table__check orders-table__check--head" onclick="event.stopPropagation()">
+      <input type="checkbox" data-orders-select-all aria-label="Выбрать все на странице" />
+    </label>
+    {% endif %}
+    <span>Заказ</span>
+    <span class="orders-table__col-fit">TR</span>
+    <span>Клиент</span>
+    <span>Поддержка</span>
+    <span>Дата</span>
+    <span>Сумма</span>
+    <span>Оплата</span>
+    <span>Статус</span>
+  </div>
+  <div class="orders-table__body">
+    {% for order in orders %}
+    <div
+      class="orders-table__row{% if order.status in ('created', 'processing') and order.availability_confirmation_status == 'pending' %} orders-table__row--availability-pending{% endif %}"
+      role="link"
+      tabindex="0"
+      data-href="/internal/admin/orders?{{ admin_orders_query(page=page, q=q or none, status=status_filter or none, date_from=date_from or none, date_to=date_to or none, paid_from=paid_from or none, paid_to=paid_to or none, order_id=order.id) }}"
+      onclick="adminOrdersOpenRow(event, this)"
+      onkeydown="adminOrdersRowKeydown(event, this)"
+    >
+      {% if orders_bulk_delete_enabled %}
+      <label class="orders-table__check" onclick="event.stopPropagation()">
+        <input
+          type="checkbox"
+          class="orders-table__delete-input"
+          data-order-delete-checkbox
+          value="{{ order.id }}"
+          aria-label="Выбрать заказ #{{ order.id }}"
+        />
+      </label>
+      {% endif %}
+      <div class="orders-table__id mono">
+        #{{ order.id }}
+        {% if order.user_id in (new_customer_user_ids | default([])) %}
+        <span class="orders-table__new-badge">Новый</span>
+        {% endif %}
+      </div>
+      {% set tps = (order_supplier_tps or {}).get(order.id, []) %}
+      <div class="orders-table__tr mono"{% if tps %} title="{{ tps | join(', ') }}"{% endif %}>
+        {% if tps|length == 0 %}
+        —
+        {% else %}
+        {{ tps[0] }}
+        {% if tps|length > 1 %}
+        <span class="orders-table__tr-more">+ ещё {{ tps|length - 1 }}</span>
+        {% endif %}
+        {% endif %}
+      </div>
+      <div class="orders-table__client">
+        <span class="orders-table__name">{{ order.user_name or '—' }}</span>
+        {% if order.user_telegram_username %}
+        <span class="orders-table__telegram">@{{ order.user_telegram_username }}</span>
+        {% endif %}
+      </div>
+      <div class="orders-table__support">
+        {% set support_count = support_ticket_counts.get(order.id, 0) if support_ticket_counts is defined else 0 %}
+        {% if support_count %}
+        <span
+          class="orders-table__support-link"
+          role="link"
+          tabindex="0"
+          data-href="/internal/admin/support?order_id={{ order.id }}"
+          onclick="event.preventDefault(); event.stopPropagation(); window.location.assign(this.dataset.href)"
+          onkeydown="if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.stopPropagation(); window.location.assign(this.dataset.href); }"
+        >{{ admin_icon("message-circle", "ico orders-table__support-icon") }}<span>{{ support_count }}</span></span>
+        {% else %}
+        <span class="orders-table__support-empty">—</span>
+        {% endif %}
+      </div>
+      <div class="orders-table__date">
+        {{ order.created_at_display or '—' }}
+      </div>
+      <div class="orders-table__sum mono">{{ order.total_amount }} ₽</div>
+      <div class="orders-table__payment">
+        {{ render_payment_state_pill(order) }}
+      </div>
+      <div class="orders-table__status">
+        <span class="orders-pill orders-pill--{{ order.status }} orders-pill--with-icon">
+          {% if order.status == 'processing' %}
+          {{ admin_icon("clock", "ico orders-pill__status-icon") }}
+          {% elif order.status == 'assembling' %}
+          {{ admin_icon("box", "ico orders-pill__status-icon") }}
+          {% elif order.status == 'delivery' %}
+          {{ admin_icon("truck", "ico orders-pill__status-icon") }}
+          {% elif order.status == 'completed' %}
+          {{ admin_icon("check", "ico orders-pill__status-icon") }}
+          {% elif order.status == 'cancelled' %}
+          {{ admin_icon("x", "ico orders-pill__status-icon") }}
+          {% elif order.status == 'failed' %}
+          {{ admin_icon("alert", "ico orders-pill__status-icon") }}
+          {% endif %}
+          {{ order.status_label or status_labels.get(order.status, order.status) }}
+        </span>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% if total_pages > 1 %}
+  <div class="orders-table__pagination">
+    {% include "site/admin/partials/_orders_pagination.html" %}
+  </div>
+  {% endif %}
+</div>
+{% else %}
+<div class="orders-empty">
+  {{ admin_icon("orders", "ico orders-empty__icon") }}
+  <p>Заказы не найдены</p>
+</div>
+{% endif %}

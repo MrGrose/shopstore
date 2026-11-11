@@ -1,0 +1,184 @@
+        {% set admin_shipments = admin_shipments if admin_shipments is defined else [] %}
+        {% set shipment_counts = shipment_counts if shipment_counts is defined else {} %}
+        {% set shipment_completion_summary = shipment_completion_summary if shipment_completion_summary is defined else none %}
+        {% if order_is_completed %}
+        <p class="orders-field__hint orders-detail-terminal-note">Доставка выполнена.</p>
+        {% for row in event_rows %}
+        {% if row.event_type == 'delivered_to_customer' and row.created_at_display %}
+        <p class="orders-field__hint mono">{{ row.created_at_display }}</p>
+        {% endif %}
+        {% endfor %}
+        {% endif %}
+
+        {% if admin_shipments %}
+        <div class="order-delivery-shipments" aria-label="Посылки">
+          <p class="order-delivery-shipments__summary">
+            Посылки: <span class="mono">{{ admin_shipments | length }}</span>
+            {% if shipment_counts.get('preparing') %} · Готовится — {{ shipment_counts.get('preparing') }}{% endif %}
+            {% if shipment_counts.get('in_transit') %} · В пути — {{ shipment_counts.get('in_transit') }}{% endif %}
+            {% if shipment_counts.get('delivered') %} · Доставлена — {{ shipment_counts.get('delivered') }}{% endif %}
+            {% if shipment_completion_summary %} · {{ shipment_completion_summary }}{% endif %}
+          </p>
+          {% if shipment_counts.get('delivered') == (admin_shipments|length) %}
+          <p class="order-supplier-orders__alloc order-supplier-orders__alloc--ok">✓ Все посылки доставлены</p>
+          {% endif %}
+          {% if not order_is_completed %}
+          <form method="post" action="/internal/admin/orders/{{ order.id }}/tracking/check" class="order-delivery-shipments__check">
+            {% include "site/admin/partials/_orders_return_fields.html" %}
+            <button type="submit" class="admin-btn-pill">Проверить все посылки</button>
+          </form>
+          {% endif %}
+          {% for card in admin_shipments %}
+          <article class="order-supplier-orders__card order-delivery-shipment">
+            <details class="order-delivery-shipment__details"{% if card.can_complete or card.can_notify %} open{% endif %}>
+              <summary class="order-supplier-orders__card-head order-delivery-shipment__summary">
+                <span class="order-delivery-shipment__summary-main">
+                  <h4 class="order-supplier-orders__card-title">Посылка {{ card.seq }}</h4>
+                  <span class="order-supplier-orders__status">{{ card.status_label }}</span>
+                </span>
+                {% if card.supplier_tracking_number %}
+                <span class="order-delivery-shipment__summary-cj mono">{{ card.supplier_tracking_number }}</span>
+                {% endif %}
+                <span class="order-delivery-shipment__chevron" aria-hidden="true"></span>
+              </summary>
+              <div class="order-delivery-shipment__body">
+            <dl class="order-readonly-kv">
+              {% if card.tp_id %}
+              <div><dt>TP</dt><dd class="mono">{{ card.tp_id }}</dd></div>
+              {% endif %}
+              <div>
+                <dt>CJ</dt>
+                <dd class="mono">
+                  {% if card.supplier_tracking_number %}{{ card.supplier_tracking_number }}
+                  {% else %}Трек-номер ещё не получен{% endif %}
+                </dd>
+              </div>
+              {% if card.supplier_carrier %}
+              <div><dt>Перевозчик</dt><dd>{{ card.supplier_carrier }}</dd></div>
+              {% endif %}
+              {% if card.delivered_at_display %}
+              <div><dt>Доставлено</dt><dd class="mono">{{ card.delivered_at_display }}</dd></div>
+              {% endif %}
+              {% if card.last_check_display %}
+              <div><dt>Последняя проверка</dt><dd class="mono">{{ card.last_check_display }}</dd></div>
+              {% endif %}
+              {% if card.telegram_label %}
+              <div>
+                <dt>Telegram админу</dt>
+                <dd>
+                  {% if card.telegram_label == '✔✔' %}
+                  <span class="order-delivery-shipment__tg-sent">&#10004;&#10004;</span>
+                  {% else %}
+                  {{ card.telegram_label }}
+                  {% endif %}
+                </dd>
+              </div>
+              {% endif %}
+              {% if card.customer_carrier or card.customer_tracking_number %}
+              <div>
+                <dt>Клиенту</dt>
+                <dd>
+                  {% if card.customer_carrier %}{{ card.customer_carrier }}{% endif %}
+                  {% if card.customer_tracking_number %}<span class="mono">{{ card.customer_tracking_number }}</span>{% endif %}
+                </dd>
+              </div>
+              {% endif %}
+              <div>
+                <dt>Завершение</dt>
+                <dd>
+                  {% if card.is_completed %}
+                  {{ card.completion_label }}{% if card.completed_at_display %} · <span class="mono">{{ card.completed_at_display }}</span>{% endif %}
+                  {% else %}
+                  {{ card.completion_label }}
+                  {% endif %}
+                </dd>
+              </div>
+              <div>
+                <dt>Telegram клиенту</dt>
+                <dd>
+                  {% if card.customer_notify_label == '✔✔' %}
+                  <span class="order-delivery-shipment__tg-sent">&#10004;&#10004;</span>
+                  {% else %}
+                  {{ card.customer_notify_label }}
+                  {% endif %}
+                </dd>
+              </div>
+            </dl>
+            {% if card.dhl_tracking_url or card.pochta_tracking_url or (card.can_complete and not order_is_completed) %}
+            <div class="shipment-actions">
+              {% if card.dhl_tracking_url %}
+              <a class="admin-btn-pill admin-btn-pill--secondary admin-btn-pill--inline" href="{{ card.dhl_tracking_url }}" target="_blank" rel="noreferrer">DHL</a>
+              {% endif %}
+              {% if card.pochta_tracking_url %}
+              <a class="admin-btn-pill admin-btn-pill--secondary admin-btn-pill--inline" href="{{ card.pochta_tracking_url }}" target="_blank" rel="noreferrer">Почта России</a>
+              {% endif %}
+              {% if card.can_complete and not order_is_completed %}
+              <form method="post" action="/internal/admin/orders/{{ order.id }}/shipments/{{ card.id }}/complete" class="order-delivery-shipment__complete">
+                {% include "site/admin/partials/_orders_return_fields.html" %}
+                <button type="submit" class="admin-btn-pill">Завершить посылку</button>
+              </form>
+              {% endif %}
+            </div>
+            {% endif %}
+            {% if card.can_notify and not order_is_completed and card.customer_notify_label != '✔✔' %}
+            <form method="post" action="/internal/admin/orders/{{ order.id }}/shipments/notify" class="orders-form-stack order-delivery-shipment__notify">
+              {% include "site/admin/partials/_orders_return_fields.html" %}
+              <input type="hidden" name="shipment_ids" value="{{ card.id }}" />
+              <div class="orders-field orders-status-message-field">
+                <label class="orders-field__label" for="order-shipment-notify-{{ order.id }}-{{ card.id }}">Сообщение клиенту</label>
+                <p class="orders-field__hint">Не завершает посылку.</p>
+                <textarea id="order-shipment-notify-{{ order.id }}-{{ card.id }}" name="custom_message" class="orders-field__textarea" rows="3">{{ card.customer_notify_draft }}</textarea>
+              </div>
+              <button type="submit" class="admin-btn-pill">Уведомить</button>
+            </form>
+            {% endif %}
+              </div>
+            </details>
+          </article>
+          {% endfor %}
+        </div>
+        {% elif order.supplier_order_id or order.supplier_tracking_id %}
+        <p class="orders-field__hint">Legacy-заказ без посылок. Tracking на заказе.</p>
+        <dl class="order-readonly-kv">
+          {% if order.supplier_order_id %}
+          <div><dt>TP-заказ</dt><dd class="mono">{{ order.supplier_order_id }}</dd></div>
+          {% endif %}
+          {% if order.supplier_tracking_id %}
+          <div><dt>CJ-трек</dt><dd class="mono">{{ order.supplier_tracking_id }}</dd></div>
+          {% endif %}
+        </dl>
+        {% if not order_is_completed %}
+        <form method="post" action="/internal/admin/orders/{{ order.id }}/tracking/check">
+          {% include "site/admin/partials/_orders_return_fields.html" %}
+          <button type="submit" class="admin-btn-pill">Проверить сейчас</button>
+        </form>
+        {% endif %}
+        {% elif order.status == 'assembling' and rail_steps.get('delivery', {}).get('state') == 'active' %}
+        <p class="orders-field__hint">Сначала оформите посылки у поставщика.</p>
+        {% else %}
+        <p class="orders-field__hint">Сначала оформите заказ у поставщика и переведите его в сборку.</p>
+        {% endif %}
+
+        {% if order.status == 'delivery' %}
+        <div class="orders-delivery-complete">
+          <div class="orders-delivery-complete__head">
+            <h3 class="orders-delivery-complete__title">Завершение заказа</h3>
+            {% if shipment_completion_summary %}
+            <p class="orders-field__hint">{{ shipment_completion_summary }}</p>
+            {% endif %}
+            <p class="orders-field__hint">Подтвердите, что клиент получил заказ.</p>
+          </div>
+          <form method="post" action="/internal/admin/orders/{{ order.id }}/status" class="orders-form-stack orders-form-stack--bordered" data-order-status-form data-order-id="{{ order.id }}" data-order-status-fixed="completed">
+            {% include "site/admin/partials/_orders_return_fields.html" %}
+            <input type="hidden" name="status" value="completed" />
+            <div class="orders-field orders-status-message-field">
+              <label class="orders-field__label" for="order-complete-message-{{ order.id }}">Сообщение клиенту</label>
+              <textarea id="order-complete-message-{{ order.id }}" name="custom_message" class="orders-field__textarea" rows="2" placeholder="Оставьте пустым — отправится автоматически" data-order-status-custom-text></textarea>
+            </div>
+            <div class="orders-form-row orders-form-row--between orders-form-row--notify-footer">
+              {{ render_rail_notify('finalize', rail_steps, order_notify_channels) }}
+              <button type="submit" class="admin-btn-pill">Завершить заказ</button>
+            </div>
+          </form>
+        </div>
+        {% endif %}

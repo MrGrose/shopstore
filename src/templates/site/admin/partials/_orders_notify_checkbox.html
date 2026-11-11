@@ -1,0 +1,33 @@
+{% macro render_orders_notify_checkbox(checked=false, disabled=false, channels=none, hint=none, outbox_pending=false) %}
+<div class="orders-notify-check">
+  <label class="orders-check">
+    <input type="checkbox" name="notify_customer" value="1"{% if checked %} checked{% endif %}{% if disabled %} disabled{% endif %} />
+    <span>Уведомить клиента</span>
+  </label>
+  {% if channels %}
+  <p class="orders-field__hint orders-notify-check__channels">Каналы: {% for channel in channels %}{% if channel == 'telegram' %}Telegram{% elif channel == 'email' %}Email{% else %}{{ channel | capitalize }}{% endif %}{% if not loop.last %}, {% endif %}{% endfor %}</p>
+  {% endif %}
+  {% if hint %}
+  <p class="orders-field__hint orders-notify-check__hint">Отправит: {{ hint }}</p>
+  {% endif %}
+  {% if outbox_pending %}
+  <p class="orders-field__hint orders-notify-check__outbox">Сообщение уже в очереди outbox — может уйти с задержкой</p>
+  {% endif %}
+</div>
+{% endmacro %}
+
+{% macro render_rail_notify(step_id, rail_steps, notification_channels) %}
+{% set step = rail_steps.get(step_id, {}) %}
+{% set notify_visible = step.get('notify_visible') %}
+{% if notify_visible is none %}
+  {% set notify_visible = step_id in ['availability', 'composition', 'assembly', 'finalize', 'status_manual'] %}
+{% endif %}
+{% if notify_visible %}
+{{ render_orders_notify_checkbox(
+  checked=step.get('notify_default', false),
+  hint=step.get('notify_hint'),
+  channels=notification_channels or [],
+  outbox_pending=step.get('notify_outbox_pending', false),
+) }}
+{% endif %}
+{% endmacro %}

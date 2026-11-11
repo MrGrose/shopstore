@@ -1,0 +1,129 @@
+[
+  {
+    "id": "padel-accessory-overgrip",
+    "title": "Wilson Pro Overgrip 3 Pack-Orange",
+    "gender": null,
+    "snapshot": {
+      "import_collection_sport": "Padel",
+      "product_type": "Overgrips",
+      "collections": [
+        {"handle": "padel-padel-accessories", "title": "Padel accessories (Padel)"},
+        {"handle": "tennis-accessories", "title": "Accessories (Tennis)"}
+      ],
+      "supplier_taxonomy": {
+        "item_category": "Accessories",
+        "item_category2": "Overgrips",
+        "item_category3": null,
+        "sport_type": "Padel"
+      }
+    },
+    "expected": {
+      "sport_type": "Padel",
+      "category_l1": "Accessories",
+      "category_l2": "Overgrips",
+      "category_l3": null,
+      "trade_group": "Overgrips"
+    }
+  },
+  {
+    "id": "padel-tshirt",
+    "title": "Leido T-Shirt Men-Green",
+    "gender": "Men",
+    "snapshot": {
+      "import_collection_sport": "Padel",
+      "product_type": "Outerwear",
+      "collections": [
+        {"handle": "padel-padel-clothing", "title": "Padel clothing (Padel)"},
+        {"handle": "tennis-clothing-shirts-t-shirts", "title": "T-Shirts (Tennis clothing/Shirts)"}
+      ],
+      "supplier_taxonomy": {
+        "item_category": "Padel clothing",
+        "item_category2": "T-Shirts",
+        "item_category3": null,
+        "sport_type": "Padel"
+      }
+    },
+    "expected": {
+      "sport_type": "Padel",
+      "category_l1": "Padel clothing",
+      "category_l2": "Shirts",
+      "category_l3": null,
+      "trade_group": "Outerwear"
+    }
+  },
+  {
+    "id": "padel-polo",
+    "title": "Bullpadel Polo Men-White",
+    "gender": "Men",
+    "snapshot": {
+      "import_collection_sport": "Padel",
+      "product_type": "Outerwear",
+      "collections": [
+        {"handle": "padel-padel-clothing", "title": "Padel clothing (Padel)"}
+      ],
+      "supplier_taxonomy": {
+        "item_category": "Padel clothing",
+        "item_category2": "Polos",
+        "item_category3": null,
+        "sport_type": "Padel"
+      }
+    },
+    "expected": {
+      "sport_type": "Padel",
+      "category_l1": "Padel clothing",
+      "category_l2": "Polos",
+      "category_l3": null,
+      "trade_group": "Outerwear"
+    }
+  },
+  {
+    "id": "padel-training-pants",
+    "title": "Bullpadel Training Pants Men-Black",
+    "gender": "Men",
+    "snapshot": {
+      "import_collection_sport": "Padel",
+      "product_type": "Outerwear",
+      "collections": [
+        {"handle": "padel-padel-clothing", "title": "Padel clothing (Padel)"}
+      ],
+      "supplier_taxonomy": {
+        "item_category": "Padel clothing",
+        "item_category2": "Pants",
+        "item_category3": null,
+        "sport_type": "Padel"
+      }
+    },
+    "expected": {
+      "sport_type": "Padel",
+      "category_l1": "Padel clothing",
+      "category_l2": "Pants",
+      "category_l3": null,
+      "trade_group": "Outerwear"
+    }
+  },
+  {
+    "id": "padel-coarse-apparel",
+    "title": "Basar Training Pants Men-Black",
+    "gender": "Men",
+    "snapshot": {
+      "import_collection_sport": "Padel",
+      "product_type": "Outerwear",
+      "collections": [
+        {"handle": "padel-padel-clothing", "title": "Padel clothing (Padel)"}
+      ],
+      "supplier_taxonomy": {
+        "item_category": "Padel",
+        "item_category2": "Padel clothing",
+        "item_category3": null,
+        "sport_type": "Padel"
+      }
+    },
+    "expected": {
+      "sport_type": "Padel",
+      "category_l1": "Padel clothing",
+      "category_l2": "Pants",
+      "category_l3": null,
+      "trade_group": "Outerwear"
+    }
+  }
+]

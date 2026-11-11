@@ -1,0 +1,241 @@
+{% extends "site/admin/base.html" %}
+{% from "site/admin/partials/_admin_ui_macros.html" import admin_page_head, admin_btn_pill %}
+{% block admin_page %}support{% endblock %}
+{% block title %}Поддержка — Admin{% endblock %}
+{% block content %}
+<div class="admin-page orders-page support-page">
+{% if selected_id and detail %}
+  {% if success or error %}
+  {% include "site/admin/partials/_flash.html" %}
+  {% endif %}
+  {% set back_q = admin_support_query(page=page, status=status_filter or none, order_id=order_id_filter or none) %}
+  <header class="admin-page__head">
+    <a href="/internal/admin/support{% if back_q %}?{{ back_q }}{% endif %}" class="admin-page__back">
+      {{ admin_icon("arrow-left", "ico ico--sm") }}
+      К списку обращений
+    </a>
+    <div class="admin-page__head-row">
+      <div class="admin-page__head-text">
+        <div class="admin-page__title-row">
+          <h1 class="admin-page__title">Обращение #{{ detail.id }}</h1>
+          <span class="orders-pill support-pill--{{ detail.status }}">
+            {{ status_labels.get(detail.status, detail.status) }}
+          </span>
+        </div>
+        <p class="admin-page__sub">
+          {{ detail.topic_label }}
+          {% if detail.order_id %} · <a href="/internal/admin/orders?id={{ detail.order_id }}" class="orders-link">Заказ #{{ detail.order_id }}</a>{% endif %}
+          {% if customer %} · <a href="/internal/admin/customers?id={{ customer.id }}" class="orders-link">{{ customer.name or customer.email or ('#' ~ customer.id) }}</a>{% endif %}
+        </p>
+      </div>
+    </div>
+  </header>
+
+  <div class="orders-detail-page">
+    <div class="support-detail-card orders-table-card">
+      <div class="support-detail">
+        <div class="support-thread">
+          {% for msg in detail.messages %}
+          <div class="support-thread__item support-thread__item--{{ msg.author_type }}">
+            <div class="support-thread__meta">
+              {% if msg.author_type == 'staff' %}Сотрудник{% else %}Клиент{% endif %}
+              · {{ msg.created_at.strftime('%d.%m.%Y %H:%M') if msg.created_at else '—' }}
+              {% if msg.author_type == 'staff' and msg.telegram_delivered == false %}
+              <span class="customers-pill customers-pill--warn">TG не доставлен</span>
+              {% elif msg.author_type == 'staff' and msg.telegram_delivered == true %}
+              <span class="customers-pill">TG ✓</span>
+              {% endif %}
+            </div>
+            {% if msg.body %}
+            {% set long_msg = msg.body|length > 280 %}
+            <div class="support-thread__body{% if long_msg %} is-collapsed{% endif %}" data-support-message-body>{{ msg.body }}</div>
+            {% if long_msg %}
+            <button type="button" class="support-thread__toggle" data-support-message-toggle aria-expanded="false">Развернуть</button>
+            {% endif %}
+            {% endif %}
+            {% if msg.attachments %}
+            <div class="support-thread__photos">
+              {% for att in msg.attachments %}
+              <a href="/support/tickets/{{ detail.id }}/attachments/{{ att.id }}/file" class="support-thread__photo-link" data-support-photo-link>
+                <img src="/support/tickets/{{ detail.id }}/attachments/{{ att.id }}/file" alt="Фото в обращении" class="support-thread__photo">
+              </a>
+              {% endfor %}
+            </div>
+            {% endif %}
+          </div>
+          {% endfor %}
+        </div>
+        <div class="support-lightbox" data-support-lightbox hidden>
+          <button type="button" class="support-lightbox__close" data-support-lightbox-close aria-label="Закрыть фото">Закрыть</button>
+          <img alt="Фото в обращении" class="support-lightbox__img" data-support-lightbox-img>
+        </div>
+
+        {% if detail.status != 'closed' %}
+        <form method="post" action="/internal/admin/support/{{ detail.id }}/reply" class="orders-form-stack orders-form-stack--bordered" data-support-reply-form enctype="multipart/form-data">
+          <input type="hidden" name="page" value="{{ page | default(1) }}">
+          <script type="application/json" data-support-reply-templates-json>{{ reply_templates_json | safe }}</script>
+          {% if reply_templates %}
+          <div class="orders-field">
+            <label class="orders-field__label" for="support-reply-template">Шаблон ответа</label>
+            <select id="support-reply-template" class="orders-field__input orders-field__select" data-support-reply-template-select>
+              <option value="">— Выберите шаблон —</option>
+              {% for tpl in reply_templates %}
+              <option value="{{ tpl.id }}">{{ tpl.label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          {% endif %}
+          <div class="orders-field">
+            <label class="orders-field__label" for="support-reply">Ответ клиенту</label>
+            <textarea id="support-reply" name="message" class="orders-field__textarea" rows="4" placeholder="Текст ответа" data-support-reply-text></textarea>
+          </div>
+          <div class="orders-field">
+            <label class="orders-field__label" for="support-reply-files">Фото</label>
+            <input id="support-reply-files" type="file" name="files" accept="image/jpeg,image/png,image/webp" multiple>
+          </div>
+          <div class="orders-form-row">
+            <button type="submit" class="admin-btn-pill">Отправить ответ</button>
+            <button type="submit" formaction="/internal/admin/support/{{ detail.id }}/close" class="admin-btn-pill admin-btn-pill--ghost">Закрыть обращение</button>
+          </div>
+        </form>
+        {% else %}
+        <p class="orders-field__hint">Обращение закрыто.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+{% elif selected_id %}
+  <header class="admin-page__head">
+    <a href="/internal/admin/support{% set back_q = admin_support_query(page=page, status=status_filter or none, order_id=order_id_filter or none) %}{% if back_q %}?{{ back_q }}{% endif %}" class="admin-page__back">
+      {{ admin_icon("arrow-left", "ico ico--sm") }}
+      К списку обращений
+    </a>
+    <h1 class="admin-page__title">Обращение не найдено</h1>
+  </header>
+  <div class="orders-empty">
+    <p>Обращение #{{ selected_id }} не найдено</p>
+  </div>
+
+{% else %}
+  {% call admin_page_head('Поддержка', sub='Обращения клиентов' ~ (' · заказ #' ~ order_id_filter if order_id_filter else '')) %}
+    {% if order_id_filter %}
+    {{ admin_btn_pill('Все обращения', href='/internal/admin/support') }}
+    {% endif %}
+  {% endcall %}
+
+  {% if success or error %}
+  {% include "site/admin/partials/_flash.html" %}
+  {% endif %}
+  <div id="admin-support-flash" class="orders-inline-flash" hidden></div>
+
+  <div class="admin-list-page orders-list-page">
+    <div class="orders-toolbar">
+      <div class="orders-filters__pills">
+        <a
+          href="/internal/admin/support{% set all_q = admin_support_query(order_id=order_id_filter or none) %}{% if all_q %}?{{ all_q }}{% endif %}"
+          class="admin-filter-pill {% if not status_filter %}is-active{% endif %}"
+        >Все <span class="admin-filter-pill__count">{{ support_status_counts.get('', 0) }}</span></a>
+        {% for code, label in status_labels.items() %}
+        <a
+          href="/internal/admin/support?{{ admin_support_query(status=code, order_id=order_id_filter or none) }}"
+          class="admin-filter-pill {% if status_filter == code %}is-active{% endif %}"
+        >{{ label }} <span class="admin-filter-pill__count">{{ support_status_counts.get(code, 0) }}</span></a>
+        {% endfor %}
+        <button
+          type="button"
+          class="admin-filter-pill admin-filter-pill--danger"
+          id="admin-support-delete-btn"
+          hidden
+        >Удалить выбранные <span class="admin-filter-pill__count" id="admin-support-delete-count">0</span></button>
+      </div>
+    </div>
+
+    <div id="admin-support-table" class="orders-table-card">
+      {% if tickets %}
+      <div class="orders-table-wrap orders-table-wrap--support orders-table-wrap--bulk-delete">
+        <div class="admin-table__head orders-table__head">
+          <label class="orders-table__check orders-table__check--head" onclick="event.stopPropagation()">
+            <input type="checkbox" data-support-select-all aria-label="Выбрать все на странице" />
+          </label>
+          <span>#</span>
+          <span>Тема</span>
+          <span>Заказ</span>
+          <span>Статус</span>
+          <span>Обновлено</span>
+          <span>Последнее сообщение</span>
+        </div>
+        <div class="orders-table__body">
+          {% for ticket in tickets %}
+          <div
+            class="orders-table__row"
+            role="link"
+            tabindex="0"
+            data-href="/internal/admin/support?{{ admin_support_query(status=status_filter or none, order_id=order_id_filter or none, page=page, ticket_id=ticket.id) }}"
+            onclick="adminSupportOpenRow(event, this)"
+            onkeydown="adminSupportRowKeydown(event, this)"
+          >
+            <label class="orders-table__check" onclick="event.stopPropagation()">
+              <input
+                type="checkbox"
+                class="orders-table__delete-input"
+                data-support-delete-checkbox
+                value="{{ ticket.id }}"
+                aria-label="Выбрать обращение #{{ ticket.id }}"
+              />
+            </label>
+            <div class="orders-table__id mono">#{{ ticket.id }}</div>
+            <div class="support-table__topic">{{ ticket.topic_label }}</div>
+            <div class="support-table__order mono">
+              {% if ticket.order_id %}
+              <span
+                class="orders-table__support-link"
+                role="link"
+                tabindex="0"
+                data-href="/internal/admin/orders?id={{ ticket.order_id }}"
+                onclick="event.preventDefault(); event.stopPropagation(); window.location.assign(this.dataset.href)"
+                onkeydown="if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.stopPropagation(); window.location.assign(this.dataset.href); }"
+              >#{{ ticket.order_id }}</span>
+              {% else %}
+              <span class="orders-table__support-empty">—</span>
+              {% endif %}
+            </div>
+            <div class="orders-table__status right">
+              <span class="orders-pill support-pill--{{ ticket.status }}">
+                {{ status_labels.get(ticket.status, ticket.status) }}
+              </span>
+            </div>
+            <div class="orders-table__date">
+              {{ format_datetime_msk(ticket.updated_at) if ticket.updated_at else '—' }}
+            </div>
+            <div class="support-table__preview">
+              {{ ticket.last_message_preview or '—' }}
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% if total_pages > 1 %}
+        <div class="orders-table__pagination">
+          <nav class="admin-pagination" aria-label="Страницы поддержки">
+            {% if page > 1 %}
+            <a class="btn btn--sm" href="/internal/admin/support?{{ admin_support_query(page=page - 1, status=status_filter or none, order_id=order_id_filter or none) }}">←</a>
+            {% endif %}
+            <span class="customers-ref-banner__text">{{ page }} / {{ total_pages }} · {{ total }}</span>
+            {% if page < total_pages %}
+            <a class="btn btn--sm" href="/internal/admin/support?{{ admin_support_query(page=page + 1, status=status_filter or none, order_id=order_id_filter or none) }}">→</a>
+            {% endif %}
+          </nav>
+        </div>
+        {% endif %}
+      </div>
+      {% else %}
+      <div class="orders-empty">
+        {{ admin_icon("orders", "ico orders-empty__icon") }}
+        <p>Обращений нет</p>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+{% endif %}
+</div>
+{% endblock %}

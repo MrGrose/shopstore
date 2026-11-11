@@ -1,0 +1,157 @@
+{% if action_message %}
+<div class="parsing-v2__flash parsing-v2__flash--ok">{{ action_message }}</div>
+{% endif %}
+{% if action_error %}
+<div class="parsing-v2__flash parsing-v2__flash--err">{{ action_error }}</div>
+{% endif %}
+
+<div class="parsing-v2__failed-head">
+  <div>
+    <h2 class="parsing-v2__title">Товары с ошибкой DOM</h2>
+    <span class="parsing-v2__muted parsing-v2__failed-sub">
+      {% if failed_total %}
+        {{ failed_total }}
+        {% if failed_total == 1 %}товар требует{% else %}товаров требуют{% endif %} внимания
+      {% else %}
+        нет товаров с ошибкой
+      {% endif %}
+      {% if oldest_error_age %} · старейшая: {{ oldest_error_age }}{% endif %}
+    </span>
+  </div>
+</div>
+
+<div class="parsing-v2__table-toolbar">
+  <button type="button"
+          class="parsing-v2__filter-pill {% if not error_filter and not retry_only and not hold_only %}is-active{% endif %}"
+          hx-get="/internal/admin/parsing/failed-products"
+          hx-target="#parsing-failed-products"
+          hx-swap="innerHTML">Все ({{ errors_total or 0 }})</button>
+  <button type="button"
+          class="parsing-v2__filter-pill {% if retry_only %}is-active{% endif %}"
+          hx-get="/internal/admin/parsing/failed-products?retry_only=1"
+          hx-target="#parsing-failed-products"
+          hx-swap="innerHTML">Повтор ({{ retry_eligible or 0 }})</button>
+  <button type="button"
+          class="parsing-v2__filter-pill {% if hold_only %}is-active{% endif %}"
+          hx-get="/internal/admin/parsing/failed-products?hold_only=1"
+          hx-target="#parsing-failed-products"
+          hx-swap="innerHTML">Hold ({{ hold_eligible or 0 }})</button>
+  {% for reason, count in errors_by_reason.items() %}
+  <button type="button"
+          class="parsing-v2__filter-pill {% if error_filter == reason %}is-active{% endif %}"
+          hx-get="/internal/admin/parsing/failed-products?error_filter={{ reason|urlencode }}"
+          hx-target="#parsing-failed-products"
+          hx-swap="innerHTML">{{ reason }} ({{ count }})</button>
+  {% endfor %}
+</div>
+
+{% if error_filter and errors_by_reason.get(error_filter) %}
+<div class="parsing-v2__bulk-bar">
+  <form hx-post="/internal/admin/parsing/bulk/deactivate?error_filter={{ error_filter|urlencode }}"
+        hx-target="#parsing-failed-products"
+        hx-swap="innerHTML"
+        hx-confirm="Снять с витрины все active-товары с ошибкой «{{ error_filter }}»?">
+    <button type="submit" class="parsing-v2__bulk-btn parsing-v2__bulk-btn--danger">Снять с витрины (bulk)</button>
+  </form>
+  <form hx-post="/internal/admin/parsing/bulk/reset-error?error_filter={{ error_filter|urlencode }}"
+        hx-target="#parsing-failed-products"
+        hx-swap="innerHTML"
+        hx-confirm="Сбросить ошибку «{{ error_filter }}» у всех товаров?">
+    <button type="submit" class="parsing-v2__bulk-btn">Сбросить ошибку (bulk)</button>
+  </form>
+</div>
+{% endif %}
+
+{% if failed_products %}
+<div class="parsing-v2__table-wrap">
+  <table class="parsing-v2__table">
+    <thead>
+      <tr>
+        <th>Товар</th>
+        <th>Ошибка</th>
+        <th>Попытки</th>
+        <th>Обновлено</th>
+        <th><span class="sr-only">Действия</span></th>
+      </tr>
+    </thead>
+    <tbody id="parsing-failed-rows">
+      {% for product in failed_products %}
+      {% set is_hold = max_attempts and (product.dom_attempts or 0) >= max_attempts and product.dom_last_error in hold_dom_errors %}
+      {% set is_retry = product.is_active and not is_hold %}
+      {% set row_tags = ('hold' if is_hold else 'retry') ~ ' ' ~ (product.dom_last_error or '') %}
+      <tr class="parsing-v2__row" data-tags="{{ row_tags|trim }}">
+        <td>
+          <strong>{{ product.title }}</strong>
+          <span class="parsing-v2__product-meta">
+            <a class="mono" href="/internal/admin/products?id={{ product.id }}">#{{ product.id }}</a>
+            {% if product.product_url %}
+            · <a href="{{ product.product_url }}" target="_blank" rel="noopener">{{ product.product_url.split('/')[2] if '://' in product.product_url else product.product_url }}</a>
+            {% endif %}
+          </span>
+        </td>
+        <td>
+          <span class="parsing-v2__failure-badge">
+            <span class="parsing-v2__dot parsing-v2__dot--err"></span>
+            {{ product.dom_last_error or '—' }}
+          </span>
+        </td>
+        <td>{{ product.dom_attempts or 0 }}/{{ max_attempts or '—' }}</td>
+        <td class="parsing-v2__muted">{{ product.dom_error_age or '—' }}</td>
+        <td class="parsing-v2__row-actions">
+          {% if product.is_active %}
+          <form hx-post="/internal/admin/parsing/products/{{ product.id }}/deactivate{% if error_filter %}?error_filter={{ error_filter|urlencode }}{% elif retry_only %}?retry_only=1{% elif hold_only %}?hold_only=1{% endif %}{% if page and page > 1 %}{% if error_filter or retry_only or hold_only %}&{% else %}?{% endif %}page={{ page }}{% endif %}"
+                hx-target="#parsing-failed-products"
+                hx-swap="innerHTML"
+                hx-confirm="Снять #{{ product.id }} с витрины?">
+            <button type="submit" class="parsing-v2__row-btn parsing-v2__row-btn--danger">Снять</button>
+          </form>
+          {% endif %}
+          <form hx-post="/internal/admin/parsing/products/{{ product.id }}/reset-error{% if error_filter %}?error_filter={{ error_filter|urlencode }}{% elif retry_only %}?retry_only=1{% elif hold_only %}?hold_only=1{% endif %}{% if page and page > 1 %}{% if error_filter or retry_only or hold_only %}&{% else %}?{% endif %}page={{ page }}{% endif %}"
+                hx-target="#parsing-failed-products"
+                hx-swap="innerHTML"
+                hx-confirm="Сбросить DOM-ошибку у #{{ product.id }}?">
+            <button type="submit" class="parsing-v2__row-btn">Сброс</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% set current_page = page if page is defined else 1 %}
+{% set pages_total = total_pages if total_pages is defined else 1 %}
+<div class="parsing-v2__table-footer">
+  <span>Показано {{ failed_products|length }} из {{ failed_total or failed_products|length }}</span>
+  <div class="parsing-v2__pagination" aria-label="Страницы таблицы">
+    {% if current_page > 1 %}
+    <button type="button"
+            hx-get="/internal/admin/parsing/failed-products?{% if retry_only %}retry_only=1&{% elif hold_only %}hold_only=1&{% elif error_filter %}error_filter={{ error_filter|urlencode }}&{% endif %}page={{ current_page - 1 }}"
+            hx-target="#parsing-failed-products"
+            hx-swap="innerHTML"
+            aria-label="Предыдущая страница">‹</button>
+    {% else %}
+    <button type="button" disabled aria-label="Предыдущая страница">‹</button>
+    {% endif %}
+    <button type="button" class="is-active" disabled>{{ current_page }}</button>
+    {% if current_page < pages_total %}
+    <button type="button"
+            hx-get="/internal/admin/parsing/failed-products?{% if retry_only %}retry_only=1&{% elif hold_only %}hold_only=1&{% elif error_filter %}error_filter={{ error_filter|urlencode }}&{% endif %}page={{ current_page + 1 }}"
+            hx-target="#parsing-failed-products"
+            hx-swap="innerHTML"
+            aria-label="Следующая страница">›</button>
+    {% else %}
+    <button type="button" disabled aria-label="Следующая страница">›</button>
+    {% endif %}
+  </div>
+</div>
+{% else %}
+<div class="parsing-v2__empty">
+  <p>
+    {% if retry_only %}Нет товаров для повтора
+    {% elif hold_only %}Нет товаров в Hold
+    {% elif error_filter %}Нет товаров с ошибкой «{{ error_filter }}»
+    {% else %}Нет товаров с DOM-ошибками{% endif %}
+  </p>
+</div>
+{% endif %}

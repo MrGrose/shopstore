@@ -1,0 +1,36 @@
+{% extends "site/admin/base.html" %}
+{% from "site/admin/partials/_admin_ui_macros.html" import admin_page_head %}
+{% block admin_page %}finance{% endblock %}
+{% block title %}Разбор периода — Финансы — Admin{% endblock %}
+{% block content %}
+<div class="admin-page finance-page finance-period-page">
+{% call admin_page_head(
+  'Разбор периода',
+  sub=period_label ~ ' · оплаченные заказы',
+  back_href='/internal/admin/finance?' ~ admin_finance_query(preset=report_back.preset or none, date_from=report_back.date_from or none, date_to=report_back.date_to or none, group=report_back.group)
+) %}{% endcall %}
+
+  {% if error %}
+  <div class="finance-flash flash flash--error" role="alert">
+    <span class="finance-flash__icon" aria-hidden="true">{{ admin_icon('alert', 'ico--sm') }}</span>
+    <div>
+      <p class="finance-flash__title">Неверный период</p>
+      <p class="finance-flash__text">{{ error }}</p>
+    </div>
+  </div>
+  {% elif detail.orders %}
+  {% set totals = detail.totals %}
+  {% set promo_referral_summary = detail.promo_referral_summary %}
+  {% include "site/admin/partials/finance_period_summary.html" %}
+
+  <section class="finance-period-orders" aria-label="Заказы за период">
+    {% include "site/admin/partials/finance_period_orders.html" %}
+  </section>
+  {% else %}
+  <div class="finance-empty">
+    <span class="finance-empty__icon" aria-hidden="true">{{ admin_icon('box', 'ico--lg') }}</span>
+    <p class="finance-empty__title">Нет оплаченных заказов за период</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

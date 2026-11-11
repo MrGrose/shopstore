@@ -1,0 +1,24 @@
+{% extends "site/admin/base.html" %}
+{% from "site/admin/partials/_admin_ui_macros.html" import admin_page_head %}
+{% block admin_page %}margins{% endblock %}
+{% block title %}Наценка — Admin{% endblock %}
+{% block content %}
+<div class="admin-page margins-page">
+{% call admin_page_head('Наценка', sub='Правила по группам витрины', title_modifier='lg') %}{% endcall %}
+
+  {% if success or error %}
+  {% include "site/admin/partials/_flash.html" %}
+  {% endif %}
+
+  <nav class="admin-filter-pills margins-sports" aria-label="Вид спорта">
+    {% for sport in sports %}
+    <a
+      class="admin-filter-pill{% if sport == selected_sport %} is-active{% endif %}"
+      href="/internal/admin/margins?sport={{ sport }}"
+    >{{ sport_labels.get(sport, sport) }}</a>
+    {% endfor %}
+  </nav>
+
+  {% include "site/admin/partials/margins_sport.html" %}
+</div>
+{% endblock %}

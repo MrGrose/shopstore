@@ -1,0 +1,13 @@
+{% macro render_payment_state_pill(order) %}
+<span class="orders-pill orders-pill--payment-{{ order.payment_state }} orders-pill--with-icon">
+  <span class="orders-pill__glyph orders-pill__glyph--payment-{{ order.payment_state }}" aria-hidden="true">
+    {%- if order.payment_state == 'paid' -%}✓
+    {%- elif order.payment_state == 'waiting' -%}⏱
+    {%- elif order.payment_state == 'initializing' -%}…
+    {%- elif order.payment_state == 'failed' -%}✕
+    {%- else -%}○
+    {%- endif -%}
+  </span>
+  {%- if order.payment_state == 'not_started' -%}—{%- else -%}{{ order.payment_label }}{%- endif -%}
+</span>
+{% endmacro %}

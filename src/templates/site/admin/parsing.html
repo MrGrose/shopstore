@@ -1,0 +1,71 @@
+{% extends "site/admin/base.html" %}
+{% from "site/admin/partials/_admin_ui_macros.html" import admin_page_head %}
+{% block admin_page %}parsing{% endblock %}
+{% block title %}Парсинг — Admin{% endblock %}
+{% block content %}
+<div class="admin-page parsing-v2">
+{% set ops = overview.ops if overview.ops is defined else {} %}
+{% set backfill_n = ops.get('backfill_eligible', 0) %}
+{% set rs = overview.run_status %}
+{% set backfill_blocked = rs.dom_queue_overloaded or backfill_n == 0 %}
+{% call admin_page_head('Парсинг каталога', sub='Операционный центр · обновление каждые 10 с') %}
+  <form hx-post="/internal/admin/parsing/backfill"
+        hx-target="#parsing-alerts"
+        hx-swap="innerHTML"
+        class="parsing-pipeline__tick-form">
+    <button type="submit"
+            class="admin-btn-pill admin-btn-pill--sm"
+            {% if backfill_blocked %}disabled{% endif %}
+            title="Ручной DOM rolling tick">
+      {% if backfill_n == 0 %}DOM tick{% elif rs.dom_queue_overloaded %}Очередь полна{% else %}DOM tick ({{ backfill_n }}){% endif %}
+    </button>
+  </form>
+{% endcall %}
+
+  {% if success or error %}
+  {% include "site/admin/partials/_flash.html" %}
+  {% endif %}
+
+  <div id="parsing-pipeline"
+       hx-get="/internal/admin/parsing/pipeline"
+       hx-trigger="load, every 10s, parsing-refresh from:body"
+       hx-swap="innerHTML">
+    {% include "site/admin/partials/parsing_pipeline.html" %}
+  </div>
+
+  <div id="parsing-alerts"
+       hx-get="/internal/admin/parsing/alerts"
+       hx-trigger="load, every 10s, parsing-refresh from:body"
+       hx-swap="innerHTML">
+    {% include "site/admin/partials/parsing_alerts.html" %}
+  </div>
+
+  <div class="parsing-v2__content-grid">
+    <section class="parsing-v2__main">
+      <div id="parsing-failed-products"
+           class="parsing-v2__failed-card"
+           hx-get="/internal/admin/parsing/failed-products{% if retry_only %}?retry_only=1{% elif hold_only %}?hold_only=1{% elif error_filter %}?error_filter={{ error_filter|urlencode }}{% endif %}{% if page and page > 1 %}{% if retry_only or hold_only or error_filter %}&{% else %}?{% endif %}page={{ page }}{% endif %}"
+           hx-trigger="load, every 30s, parsing-refresh from:body"
+           hx-swap="innerHTML">
+        {% include "site/admin/partials/parsing_failed_products.html" %}
+      </div>
+    </section>
+
+    <aside id="parsing-sidebar"
+           class="parsing-v2__side"
+           hx-get="/internal/admin/parsing/metrics"
+           hx-trigger="load, every 30s, parsing-refresh from:body"
+           hx-swap="innerHTML">
+      {% include "site/admin/partials/parsing_sidebar.html" %}
+    </aside>
+  </div>
+
+  <div id="parsing-technical"
+       hx-get="/internal/admin/parsing/technical"
+       hx-trigger="load, every 30s, parsing-refresh from:body"
+       hx-swap="innerHTML">
+    {% include "site/admin/partials/parsing_technical.html" %}
+  </div>
+
+</div>
+{% endblock %}

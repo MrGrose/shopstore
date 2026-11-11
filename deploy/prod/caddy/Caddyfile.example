@@ -1,0 +1,21 @@
+# Пример host Caddyfile для production (фрагменты).
+# Полный файл на VPS: /etc/caddy/Caddyfile — править вручную на сервере.
+#
+# PROD cutover меняет только reverse_proxy в блоке shopstore.pro (8001 <-> 8002).
+# Блок cdn.shopstore.example и upstream 127.0.0.1:8888 PROD не трогает.
+
+cdn.shopstore.example {
+	encode zstd gzip
+
+	handle /media/products/* {
+		uri replace /media/products /buckets/shopstore-media/products
+		reverse_proxy 127.0.0.1:8888
+	}
+
+	respond 404
+}
+
+shopstore.pro, www.shopstore.pro {
+	encode zstd gzip
+	reverse_proxy 127.0.0.1:8002
+}

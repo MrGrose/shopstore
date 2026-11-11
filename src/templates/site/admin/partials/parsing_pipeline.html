@@ -1,0 +1,80 @@
+{% set parsing = overview.parsing if overview.parsing is defined else {} %}
+{% set stages = parsing.get('stages', []) %}
+{% set rs = overview.run_status %}
+{% set ops = overview.ops if overview.ops is defined else {} %}
+{% set workers = ops.get('workers', {}) %}
+{% set dom_worker = workers.get('dom', {}) %}
+
+<section class="parsing-v2__pipeline-card">
+  <div class="parsing-v2__section-head">
+    <div>
+      <h2 class="parsing-v2__title">Пайплайн</h2>
+      <span class="parsing-v2__live"><span class="parsing-v2__dot parsing-v2__dot--ok"></span> Live</span>
+    </div>
+  </div>
+
+  <div class="parsing-v2__pipeline-grid">
+    {% for stage in stages %}
+    <div class="parsing-v2__pipeline-stage">
+      <div class="parsing-v2__stage-top">
+        <span class="parsing-v2__stage-index">{{ '%02d' % (loop.index) }}</span>
+        <strong>{{ stage.label }}</strong>
+        <span class="customers-pill {% if stage.status == 'ok' %}customers-pill--active{% elif stage.status == 'warn' %}customers-pill--order-processing{% else %}customers-pill--order-failed{% endif %} parsing-v2__stage-pill">
+          {{ stage.detail }}
+        </span>
+      </div>
+      <div class="parsing-v2__stage-metrics">
+        <div class="parsing-v2__metric">
+          <span>Очередь</span>
+          <strong class="{% if stage.key == 'dom' and stage.pending %}is-warn{% endif %}">{{ stage.pending }}</strong>
+        </div>
+        <div class="parsing-v2__metric">
+          <span>В работе</span>
+          <strong>{{ stage.running }}</strong>
+        </div>
+        <div class="parsing-v2__metric">
+          <span>Ошибки</span>
+          <strong class="{% if stage.failed %}is-err{% endif %}">{{ stage.failed }}</strong>
+        </div>
+      </div>
+      <p class="parsing-v2__stage-worker">
+        {% if stage.key == 'dom' and dom_worker.names %}
+          {{ dom_worker.names | join(', ') }}
+        {% elif stage.worker.alive %}
+          онлайн{% if stage.worker.count > 1 %} ({{ stage.worker.count }}){% endif %}
+        {% else %}
+          офлайн
+        {% endif %}
+        {% if stage.estimated_skus is not none %} · ≈{{ stage.estimated_skus }} SKU{% endif %}
+        {% if stage.blocked %} · <strong>не добавляется</strong>{% endif %}
+      </p>
+    </div>
+    {% endfor %}
+  </div>
+
+  <div class="parsing-v2__workers-strip">
+    <div>
+      <span class="parsing-v2__eyebrow">DOM workers</span>
+      <div class="parsing-v2__workers-list">
+        {% for name in dom_worker.names or [] %}
+        <span><span class="parsing-v2__dot parsing-v2__dot--ok"></span> {{ name }}</span>
+        {% else %}
+        <span><span class="parsing-v2__dot parsing-v2__dot--muted"></span> worker-dom offline</span>
+        {% endfor %}
+      </div>
+    </div>
+    <strong>{{ dom_worker.count or 0 }}/2 <small>онлайн</small></strong>
+  </div>
+
+  <div class="customers-revenue-bar customers-revenue-bar--compact parsing-v2__batch-bar">
+    <span class="customers-revenue-bar__label">
+      Пакет {{ overview.rolling.batch_size }} · DOM {{ rs.dom_queue_pending }}/{{ rs.dom_queue_max_pending }}
+    </span>
+    <span class="customers-revenue-bar__value">
+      ~{{ rs.estimated_dom_products_remaining }} SKU
+      <span class="ac-card__meta">(очередь + в работе) × размер чанка</span>
+    </span>
+  </div>
+</section>
+
+{% include "site/admin/partials/parsing_lanes.html" %}

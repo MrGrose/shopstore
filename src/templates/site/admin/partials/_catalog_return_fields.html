@@ -1,0 +1,14 @@
+{% set catalog_return = catalog_return | default({"view": "in_stock", "top": "All", "page": 1}, true) %}
+<input type="hidden" name="return_view" value="{{ catalog_return.view }}" />
+<input type="hidden" name="return_top" value="{{ catalog_return.top }}" />
+<input type="hidden" name="return_page" value="{{ catalog_return.page }}" />
+{% if catalog_return.category %}<input type="hidden" name="return_category" value="{{ catalog_return.category }}" />{% endif %}
+{% if catalog_return.brand %}<input type="hidden" name="return_brand" value="{{ catalog_return.brand }}" />{% endif %}
+{% if catalog_return.q %}<input type="hidden" name="return_q" value="{{ catalog_return.q }}" />{% endif %}
+{% if catalog_return.sort %}<input type="hidden" name="return_sort" value="{{ catalog_return.sort }}" />{% endif %}
+{% if catalog_return.sort_price %}<input type="hidden" name="return_sort_price" value="{{ catalog_return.sort_price }}" />{% endif %}
+{% if catalog_return.tab %}<input type="hidden" name="return_tab" value="{{ catalog_return.tab }}" />{% endif %}
+{% if catalog_return.inclusion %}<input type="hidden" name="return_inclusion" value="{{ catalog_return.inclusion }}" />{% endif %}
+{% if catalog_return.site %}<input type="hidden" name="return_site" value="{{ catalog_return.site }}" />{% endif %}
+{% if catalog_return.reason %}<input type="hidden" name="return_reason" value="{{ catalog_return.reason }}" />{% endif %}
+{% if catalog_return.selected_id is defined and catalog_return.selected_id %}<input type="hidden" name="return_selected_id" value="{{ catalog_return.selected_id }}" />{% endif %}

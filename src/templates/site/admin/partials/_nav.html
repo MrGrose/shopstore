@@ -1,0 +1,32 @@
+{% set path = request.url.path %}
+<header class="topnav">
+  <div class="topnav__inner">
+    <a class="brand" href="/internal/admin/dashboard">
+      <span class="brand__mark">SP</span>
+      <span>Shopstore</span>
+    </a>
+    <nav class="nav" aria-label="Главное меню">
+      <a class="nav__link {% if path.startswith('/internal/admin/dashboard') %}is-active{% endif %}" href="/internal/admin/dashboard" title="Дашборд">{{ admin_icon('dashboard', 'ico--sm') }}<span class="nav__label">Дашборд</span></a>
+      <a class="nav__link {% if path.startswith('/internal/admin/orders') %}is-active{% endif %}" href="/internal/admin/orders" title="Заказы">{{ admin_icon('orders', 'ico--sm') }}<span class="nav__label">Заказы</span>{% set nav_orders_action = admin_nav_orders_action if admin_nav_orders_action is defined else (request.state.admin_nav_orders_action if request.state.admin_nav_orders_action is defined else 0) %}{% if nav_orders_action %}<span class="badge badge--soft-count">{% if nav_orders_action > 99 %}99+{% else %}{{ nav_orders_action }}{% endif %}</span>{% endif %}</a>
+      <a class="nav__link {% if path.startswith('/internal/admin/finance') %}is-active{% endif %}" href="/internal/admin/finance" title="Финансы">{{ admin_icon('finance', 'ico--sm') }}<span class="nav__label">Финансы</span></a>
+      <a class="nav__link {% if path.startswith('/internal/admin/support') %}is-active{% endif %}" href="/internal/admin/support" title="Поддержка">{{ admin_icon('support', 'ico--sm') }}<span class="nav__label">Поддержка</span>{% set nav_support = admin_nav_open_support if admin_nav_open_support is defined else (request.state.admin_nav_open_support if request.state.admin_nav_open_support is defined else 0) %}{% if nav_support %}<span class="badge badge--soft-count">{{ nav_support }}</span>{% endif %}</a>
+      <a class="nav__link {% if path.startswith('/internal/admin/products') %}is-active{% endif %}" href="/internal/admin/products" title="Товары">{{ admin_icon('products', 'ico--sm') }}<span class="nav__label">Товары</span></a>
+      <a class="nav__link {% if path.startswith('/internal/admin/customers') %}is-active{% endif %}" href="/internal/admin/customers" title="Клиенты">{{ admin_icon('customers', 'ico--sm') }}<span class="nav__label">Клиенты</span></a>
+      <a class="nav__link {% if path.startswith('/internal/admin/prices') %}is-active{% endif %}" href="/internal/admin/prices" title="Цены">{{ admin_icon('prices', 'ico--sm') }}<span class="nav__label">Цены</span></a>
+      <a class="nav__link {% if path.startswith('/internal/admin/margins') %}is-active{% endif %}" href="/internal/admin/margins" title="Наценки">{{ admin_icon('margins', 'ico--sm') }}<span class="nav__label">Наценки</span></a>
+      <a class="nav__link {% if path.startswith('/internal/admin/promos') %}is-active{% endif %}" href="/internal/admin/promos" title="Промокоды">{{ admin_icon('promos', 'ico--sm') }}<span class="nav__label">Промокоды</span></a>
+      <a class="nav__link {% if path.startswith('/internal/admin/parsing') %}is-active{% endif %}" href="/internal/admin/parsing" title="Парсинг">{{ admin_icon('import', 'ico--sm') }}<span class="nav__label">Парсинг</span></a>
+    </nav>
+    <div class="nav__right">
+      <form method="post" action="/internal/admin/logout" style="display:inline;">
+        <button type="submit" class="nav__link nav__link--btn" title="Выход">{{ admin_icon('logout', 'ico--sm') }}<span class="nav__label">Выход</span></button>
+      </form>
+      {% if admin_user is defined and admin_user %}
+      <div class="nav__user">
+        <span class="nav__user-email">{{ admin_user.email or admin_user.name or 'Admin' }}</span>
+        <span class="avatar">{{ (admin_user.name or admin_user.email or 'A')[:1] | upper }}</span>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</header>

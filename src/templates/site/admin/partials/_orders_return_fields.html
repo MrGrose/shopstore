@@ -1,0 +1,8 @@
+{% set orders_return = orders_return | default({"page": 1}, true) %}
+<input type="hidden" name="return_page" value="{{ orders_return.page }}" />
+{% if orders_return.status %}<input type="hidden" name="return_status" value="{{ orders_return.status }}" />{% endif %}
+{% if orders_return.q %}<input type="hidden" name="return_q" value="{{ orders_return.q }}" />{% endif %}
+{% if orders_return.date_from %}<input type="hidden" name="return_date_from" value="{{ orders_return.date_from }}" />{% endif %}
+{% if orders_return.date_to %}<input type="hidden" name="return_date_to" value="{{ orders_return.date_to }}" />{% endif %}
+{% if orders_return.paid_from %}<input type="hidden" name="return_paid_from" value="{{ orders_return.paid_from }}" />{% endif %}
+{% if orders_return.paid_to %}<input type="hidden" name="return_paid_to" value="{{ orders_return.paid_to }}" />{% endif %}

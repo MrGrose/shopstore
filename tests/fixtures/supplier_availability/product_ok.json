@@ -1,0 +1,20 @@
+{
+  "id": 900001,
+  "title": "Spike Demo Racket",
+  "variants": [
+    {
+      "id": 910001,
+      "sku": "SPIKE-SKU-OK",
+      "available": true,
+      "inventory_quantity": 4,
+      "price": "12990"
+    },
+    {
+      "id": 910002,
+      "sku": "SPIKE-SKU-OOS",
+      "available": false,
+      "inventory_quantity": 0,
+      "price": "12990"
+    }
+  ]
+}

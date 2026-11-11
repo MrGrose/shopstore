@@ -1,0 +1,98 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+/lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environment
+.env
+.venv
+env/
+venv/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Database
+*.db
+*.sqlite3
+
+# Docker
+data/
+
+# Deploy (local → server scripts)
+scripts/deploy.env
+
+# Playwright session
+src/scraper/.playwright_profile/
+src/scraper/infrastructure/session/*
+!src/scraper/infrastructure/session/.gitkeep
+
+src/scraper/infrastructure/session-1/*
+!src/scraper/infrastructure/session-1/.gitkeep
+src/scraper/infrastructure/session-2/*
+!src/scraper/infrastructure/session-2/.gitkeep
+src/scraper/.playwright_profile-lane2/
+src/scraper/.env.lane1
+src/scraper/.env.lane2
+
+media/
+!scripts/media/
+!scripts/media/*.py
+!scripts/media/*.md
+*.jpg
+*.jpeg
+*.png
+!frontend/src/assets/**
+!frontend/public/**
+!src/static/**
+
+.linter
+poetry.lock
+.vscode/
+.editorconfig
+.gitconfig
+
+# DB dumps (scripts/backup_postgres.sh)
+backups/
+
+# Локальные утилиты (не в git)
+local_scripts/
+
+# pytest
+.pytest_cache/
+
+# E2E
+e2e/node_modules/
+e2e/test-results/
+tests/e2e/artifacts/
+
+.*
+!.gitignore
+!.github/
+!.pre-commit-config.yaml
+!.env.example
+!frontend/.env.production
+!frontend/.env.development.example
+!src/scraper/infrastructure/session-1/.gitkeep
+!src/scraper/infrastructure/session-2/.gitkeep

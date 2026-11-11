@@ -1,0 +1,71 @@
+{% if order_rows %}
+<div class="table-wrap">
+  <table class="tbl products-orders-table">
+    <thead>
+      <tr>
+        <th>Заказ</th>
+        <th>Дата</th>
+        <th>Статус</th>
+        <th>Кол-во</th>
+        <th>Сумма</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in order_rows %}
+      <tr>
+        <td><a href="/internal/admin/orders?id={{ row.order_id }}" class="customers-link">#{{ row.order_id }}</a></td>
+        <td>{{ format_datetime_msk(row.created_at, with_tz_label=False) if row.created_at else '—' }}</td>
+        <td><span class="customers-pill customers-pill--order-{{ row.status }}">{{ status_labels.get(row.status, row.status) }}</span></td>
+        <td class="mono">{{ row.quantity }}</td>
+        <td class="mono">{{ row.line_total }} ₽</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<p class="empty muted">Товар ещё не продавался</p>
+{% endif %}
+{% if total_pages > 1 %}
+<div class="customers-table__pagination products-orders-pagination">
+  {% if page > 1 %}
+  <a
+    class="customers-page-btn"
+    href="#"
+    hx-get="/internal/admin/products/{{ product_id }}/orders?page={{ page - 1 }}"
+    hx-target="#product-orders-panel"
+    hx-swap="innerHTML"
+  >
+    {{ admin_icon("chevron-left", "ico ico--sm") }}
+    Назад
+  </a>
+  {% else %}
+  <span class="customers-page-btn customers-page-btn--disabled">
+    {{ admin_icon("chevron-left", "ico ico--sm") }}
+    Назад
+  </span>
+  {% endif %}
+  <span class="customers-table__page-info">
+    <strong>{{ page }}</strong> / {{ total_pages }} · {{ order_total }}
+  </span>
+  {% if page < total_pages %}
+  <a
+    class="customers-page-btn"
+    href="#"
+    hx-get="/internal/admin/products/{{ product_id }}/orders?page={{ page + 1 }}"
+    hx-target="#product-orders-panel"
+    hx-swap="innerHTML"
+  >
+    Далее
+    {{ admin_icon("chevron-right", "ico ico--sm") }}
+  </a>
+  {% else %}
+  <span class="customers-page-btn customers-page-btn--disabled">
+    Далее
+    {{ admin_icon("chevron-right", "ico ico--sm") }}
+  </span>
+  {% endif %}
+</div>
+{% elif order_total %}
+<p class="small muted products-orders-meta">Всего заказов: {{ order_total }}</p>
+{% endif %}

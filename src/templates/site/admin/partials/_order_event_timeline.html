@@ -1,0 +1,49 @@
+{% macro render_event_rows(event_rows) %}
+  {% if event_rows %}
+  <div class="timeline">
+    {% for row in event_rows %}
+    <div class="tl-item">
+      <div class="tl-item__rail">
+        <span class="tl-dot {% if loop.first %}tl-dot--active{% else %}tl-dot--done{% endif %}"></span>
+        {% if not loop.last %}<span class="tl-line"></span>{% endif %}
+      </div>
+      <div class="tl-item__body">
+        <div class="tl-item__title">{{ row.title }}</div>
+        {% if row.message %}
+        <div class="tl-item__meta">{{ row.message }}</div>
+        {% endif %}
+        {% if row.changes %}
+        <ul class="admin-event-changes" style="margin:4px 0 0;padding-left:16px;">
+          {% for line in row.changes %}
+          <li class="tl-item__meta">
+            {{ line.label }}:
+            {% if line.before != '—' and line.before != line.after %}
+            <span class="admin-event-before">{{ line.before }}</span>
+            <span class="admin-event-arrow">→</span>
+            {% endif %}
+            <span class="admin-event-after">{{ line.after }}</span>
+          </li>
+          {% endfor %}
+        </ul>
+        {% endif %}
+        {% if row.technical_lines %}
+        <details class="orders-payment-tech">
+          <summary class="orders-payment-tech__summary">Технические данные</summary>
+          <div class="orders-payment-tech__body">
+            {% for line in row.technical_lines %}
+            <div class="orders-payment-tech__line mono">{{ line }}</div>
+            {% endfor %}
+          </div>
+        </details>
+        {% endif %}
+        <div class="tl-item__meta">
+          {{ row.created_by or '—' }}{% if row.created_at_display %} · {{ row.created_at_display }}{% endif %}
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="muted small">История пока пустая.</div>
+  {% endif %}
+{% endmacro %}

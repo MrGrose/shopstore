@@ -1,0 +1,136 @@
+<div class="ac-card__body ac-card__body--flush{% if not composition_edit_allowed %} orders-composition--readonly{% endif %}">
+        <form method="post" action="/internal/admin/orders/{{ order.id }}/items" class="orders-composition-form">
+          {% include "site/admin/partials/_orders_return_fields.html" %}
+          {% if composition_edit_allowed %}
+          <div class="orders-detail-action__toolbar">
+            <button type="button" class="orders-detail-add-item-btn" data-order-add-item-toggle="order-add-item-section">
+              {{ admin_icon("plus", "ico orders-detail-add-item-btn__icon") }} Добавить товар
+            </button>
+            <p class="orders-field__hint orders-composition-toolbar-hint">Отметьте позиции на удаление или добавьте товар, затем нажмите «Сохранить».</p>
+          </div>
+          <div id="order-add-item-section" class="orders-add-item" hidden data-order-add-item data-order-id="{{ order.id }}">
+            <div class="orders-add-item__row">
+            <div class="orders-form-row orders-add-item__fields">
+              <div class="orders-field orders-field--grow orders-add-item__search">
+                <label class="orders-field__label" for="add-product-search-{{ order.id }}">Поиск</label>
+                <input
+                  id="add-product-search-{{ order.id }}"
+                  class="orders-field__input"
+                  type="search"
+                  autocomplete="off"
+                  placeholder="ID, название, SKU…"
+                  data-order-add-search
+                />
+                <div id="add-product-picker-{{ order.id }}" class="orders-product-picker" hidden></div>
+              </div>
+              <div class="orders-field">
+                <label class="orders-field__label" for="add-variant-id-{{ order.id }}">Вариант</label>
+                <select id="add-variant-id-{{ order.id }}" class="orders-field__select" name="add_variant_id" disabled>
+                  <option value="">Сначала выберите товар</option>
+                </select>
+              </div>
+              <div class="orders-field">
+                <label class="orders-field__label" for="add-qty-{{ order.id }}">Кол-во</label>
+                <div class="orders-qty-stepper">
+                  <button type="button" class="orders-qty-stepper__btn" data-qty-minus aria-label="Меньше">−</button>
+                  <input id="add-qty-{{ order.id }}" class="orders-field__input orders-items-table__input--qty" type="number" min="1" name="add_quantity" value="1" />
+                  <button type="button" class="orders-qty-stepper__btn" data-qty-plus aria-label="Больше">+</button>
+                </div>
+              </div>
+              <div class="orders-field">
+                <label class="orders-field__label" for="add-price-{{ order.id }}">Цена, ₽</label>
+                <input id="add-price-{{ order.id }}" class="orders-field__input" type="text" name="add_unit_price" placeholder="авто из sale_price" />
+              </div>
+            </div>
+            <button
+              type="button"
+              class="orders-add-item__dismiss"
+              data-order-add-item-dismiss
+              aria-label="Убрать"
+              title="Убрать"
+            >
+              {{ admin_icon("trash", "ico orders-add-item__dismiss-icon") }}
+            </button>
+            </div>
+            <p class="orders-field__hint orders-add-item__selected" data-order-add-selected hidden></p>
+            <input id="add-product-id-{{ order.id }}" type="hidden" name="add_product_id" value="" />
+          </div>
+          {% endif %}
+          {% if composition_edit_block_reason %}
+          <p class="orders-field__hint orders-composition-readonly-note">{{ composition_edit_block_reason }}</p>
+          {% if composition_qr_expires_at_display %}
+          <p class="orders-field__hint">QR действует до: <span class="mono">{{ composition_qr_expires_at_display }}</span></p>
+          {% endif %}
+          {% endif %}
+          {% if order.items %}
+          <div class="orders-items-list">
+            {% for item in order.items %}
+            <div class="orders-items-list__row" data-order-item-row>
+              <div class="orders-items-list__product">
+                <a href="/internal/admin/products?id={{ item.product_id }}" class="orders-link orders-items-list__name">{{ item.product_title or 'Товар' }}</a>
+                <span class="orders-items-list__sku mono">#{{ item.product_id }}</span>
+              </div>
+              <div class="orders-items-list__qty">
+                {% if composition_edit_allowed %}
+                <div class="orders-qty-stepper orders-qty-stepper--compact">
+                  <button type="button" class="orders-qty-stepper__btn" data-qty-minus aria-label="Меньше">−</button>
+                  <input class="orders-items-list__qty-input mono" type="number" min="1" name="item_{{ item.id }}_qty" value="{{ item.quantity }}" />
+                  <button type="button" class="orders-qty-stepper__btn" data-qty-plus aria-label="Больше">+</button>
+                </div>
+                {% else %}
+                <span class="orders-items-list__qty-value mono">{{ item.quantity }}</span>
+                {% endif %}
+              </div>
+              <div class="orders-items-list__price mono">
+                {% if composition_edit_allowed %}
+                <input class="orders-items-list__price-input mono" name="item_{{ item.id }}_price" value="{{ item.unit_price }}" inputmode="decimal" />
+                {% else %}
+                {{ item.unit_price }} ₽
+                {% endif %}
+              </div>
+              <div class="orders-items-list__total mono">{{ (item.unit_price * item.quantity) if item.unit_price and item.quantity else '—' }} ₽</div>
+              {% if composition_edit_allowed %}
+              <label class="orders-items-list__remove" title="Отметить на удаление">
+                <input type="checkbox" class="orders-items-list__remove-input" name="remove_item_ids" value="{{ item.id }}" data-order-item-remove />
+                {{ admin_icon("trash", "ico orders-items-list__remove-icon") }}
+              </label>
+              {% endif %}
+            </div>
+            {% endfor %}
+          </div>
+          {% else %}
+          <p class="orders-note orders-note--items">Позиций нет</p>
+          {% endif %}
+          <div class="orders-items-totals">
+            <div class="orders-items-totals__row">
+              <span class="orders-items-totals__label">Подытог</span>
+              <span class="orders-items-totals__value mono">{{ order.items_subtotal_amount }} ₽</span>
+            </div>
+            {% if order.discount_items_amount and order.discount_items_amount > 0 %}
+            <div class="orders-items-totals__row orders-items-totals__row--discount">
+              <span class="orders-items-totals__label">Скидка{% if order.promo_code_applied %} {{ order.promo_code_applied }}{% endif %}</span>
+              <span class="orders-items-totals__value mono">−{{ order.discount_items_amount }} ₽</span>
+            </div>
+            {% endif %}
+            <div class="orders-items-totals__row">
+              <span class="orders-items-totals__label">Доставка</span>
+              <span class="orders-items-totals__value mono">{% if order.delivery_fee_amount and order.delivery_fee_amount > 0 %}{{ order.delivery_fee_amount }} ₽{% else %}Бесплатно{% endif %}</span>
+            </div>
+            <div class="orders-items-totals__row orders-items-totals__row--total">
+              <span class="orders-items-totals__label">Итого</span>
+              <span class="orders-items-totals__value mono">{{ order.total_amount }} ₽</span>
+            </div>
+          </div>
+          {% if composition_edit_allowed %}
+          <div class="orders-composition-save">
+            <div class="orders-field orders-field--grow orders-composition-save__comment">
+              <textarea name="event_message" class="orders-field__textarea" rows="2" placeholder="Комментарий к изменению"></textarea>
+            </div>
+            <div class="orders-composition-save__actions">
+              {{ render_rail_notify('composition', rail_steps, order_notify_channels) }}
+              <button type="submit" class="admin-btn-pill">Сохранить</button>
+            </div>
+          </div>
+          {% endif %}
+        </form>
+</div>

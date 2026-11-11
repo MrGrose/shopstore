@@ -1,0 +1,104 @@
+{% extends "site/admin/base.html" %}
+{% from "site/admin/partials/_admin_ui_macros.html" import admin_page_head %}
+{% block admin_page %}customers{% endblock %}
+{% block title %}Клиенты — Admin{% endblock %}
+{% block content %}
+<div class="admin-page customers-page">
+{% if selected_id and detail %}
+  {% set user = detail.user %}
+  {% set activity_status = customer_activity_status(detail.orders_count) %}
+  {% if success or error %}
+  {% include "site/admin/partials/_flash.html" %}
+  {% endif %}
+  <div class="customers-detail-page">
+    <header class="customers-detail-head">
+      <a href="/internal/admin/customers" class="customers-detail-head__back">
+        {{ admin_icon("arrow-left", "ico ico--sm") }}
+        К списку клиентов
+      </a>
+      <div class="customers-detail-head__row">
+        <div class="customers-detail-head__avatar" aria-hidden="true">
+          {{ (user.name or '?')[:1] | upper }}
+        </div>
+        <div class="customers-detail-head__title-group">
+          <h1 class="customers-detail-head__title">{{ user.name or 'Без имени' }}</h1>
+          <span class="customers-pill customers-pill--{{ activity_status }}">
+            {{ customer_activity_labels.get(activity_status, activity_status) }}
+          </span>
+          <span class="customers-pill customers-pill--role-{{ user.role }}">
+            {{ user_role_labels.get(user.role, user.role) }}
+          </span>
+        </div>
+        <div class="customers-detail-head__meta mono">
+          <span>#{{ user.id }}</span>
+          <span>·</span>
+          <span>{{ detail.orders_count }} заказов</span>
+        </div>
+      </div>
+    </header>
+    {% with user=user, orders=detail.orders, cart=detail.cart, orders_count=detail.orders_count, completed_orders_count=detail.completed_orders_count, can_delete_customer=detail.can_delete_customer, referral=referral, referral_partners=referral_partners, telegram_id=detail.telegram_id, telegram_username=detail.telegram_username, login_phone_e164=detail.login_phone_e164, login_phone_display=detail.login_phone_display, delivery_profile=detail.delivery_profile %}
+      {% include "site/admin/partials/customer_detail.html" %}
+    {% endwith %}
+  </div>
+
+{% elif selected_id %}
+  <header class="admin-page__head">
+    <a href="/internal/admin/customers" class="admin-page__back">
+      {{ admin_icon("arrow-left", "ico ico--sm") }}
+      К списку клиентов
+    </a>
+    <h1 class="admin-page__title">Клиент не найден</h1>
+  </header>
+  <div class="customers-empty">
+    {{ admin_icon("customers", "ico customers-empty__icon") }}
+    <p>Пользователь #{{ selected_id }} не найден</p>
+  </div>
+
+{% else %}
+  {% call admin_page_head('Клиенты', sub='Профили, заказы и реферальная программа', title_count='', title_count_id='admin-customers-total-count') %}{% endcall %}
+
+  {% if success or error %}
+  {% include "site/admin/partials/_flash.html" %}
+  {% endif %}
+  <div id="admin-customers-flash" class="customers-inline-flash" hidden></div>
+
+  <div class="admin-list-page customers-list-page">
+    <form id="admin-customers-filters" class="customers-toolbar">
+      <div class="customers-search">
+        {{ admin_icon("search", "ico ico--sm customers-search__icon") }}
+        <input
+          name="q"
+          class="customers-search__input"
+          type="search"
+          placeholder="Имя, телефон, Telegram, email, ID…"
+          value="{{ q }}"
+          hx-get="/internal/admin/customers/table"
+          hx-target="#admin-customers-table"
+          hx-trigger="keyup changed delay:350ms, search"
+          hx-include="#admin-customers-filters"
+        />
+      </div>
+      <input type="hidden" name="page" value="1" />
+      <div class="customers-filters__pills">
+        <button
+          type="button"
+          class="admin-filter-pill admin-filter-pill--danger"
+          id="admin-customers-delete-btn"
+          hidden
+        >Удалить выбранные <span class="admin-filter-pill__count" id="admin-customers-delete-count">0</span></button>
+      </div>
+    </form>
+
+    <div
+      id="admin-customers-table"
+      class="customers-table-card"
+      hx-get="/internal/admin/customers/table?page={{ page }}&q={{ q }}"
+      hx-trigger="load"
+      hx-swap="innerHTML"
+    >
+      <div class="customers-empty customers-empty--compact">Загрузка…</div>
+    </div>
+  </div>
+{% endif %}
+</div>
+{% endblock %}

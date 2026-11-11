@@ -1,0 +1,123 @@
+.storefront-legal-doc {
+  padding: 0.25rem 0 2rem;
+  color: var(--sp-text-secondary);
+  font-family: var(--font-body);
+  font-size: 0.92rem;
+  line-height: 1.6;
+}
+
+.storefront-legal-doc h1,
+.storefront-legal-doc .page-title {
+  margin: 0 0 1rem;
+  font-family: var(--font-display);
+  font-size: clamp(1.35rem, 2.5vw, 1.75rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--sp-text-primary);
+}
+
+.storefront-legal-doc .legal-doc-lead {
+  margin: 0 0 1.25rem;
+  max-width: 42rem;
+  color: var(--sp-text-secondary);
+}
+
+.storefront-legal-doc .legal-doc-meta {
+  margin: 0 0 0.75rem;
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--sp-text-muted);
+}
+
+.storefront-legal-doc .legal-doc-operator {
+  margin: 0 0 1.25rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--sp-border);
+  border-radius: var(--sp-radius-input);
+  background: var(--sp-bg);
+  font-size: 0.88rem;
+}
+
+.storefront-legal-doc .legal-doc-disclaimer {
+  margin: 0 0 1.5rem;
+  padding: 0.65rem 0.85rem;
+  border-left: 2px solid var(--sp-border);
+  font-size: 0.78rem;
+  color: var(--sp-text-muted);
+}
+
+.storefront-legal-doc h2 {
+  margin: 1.75rem 0 0.5rem;
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--sp-text-primary);
+}
+
+.storefront-legal-doc p,
+.storefront-legal-doc li {
+  margin: 0 0 0.65rem;
+  max-width: 42rem;
+}
+
+.storefront-legal-doc ul,
+.storefront-legal-doc ol {
+  margin: 0 0 0.85rem;
+  padding-left: 1.25rem;
+  list-style-position: outside;
+}
+
+.storefront-legal-doc ul {
+  list-style-type: disc;
+}
+
+.storefront-legal-doc ol {
+  list-style-type: decimal;
+}
+
+.storefront-legal-doc a {
+  color: var(--sp-blue);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.storefront-legal-doc a:hover {
+  color: var(--sp-text-primary);
+}
+
+.storefront-legal-doc .legal-doc-config-warning {
+  margin: 0 0 1rem;
+  padding: 0.75rem 0.9rem;
+  border: 1px solid rgba(212, 24, 61, 0.25);
+  background: rgba(212, 24, 61, 0.06);
+  color: var(--destructive);
+  font-size: 0.82rem;
+}
+
+.storefront-legal-doc .legal-doc-table-wrap {
+  margin: 0 0 1rem;
+  overflow-x: auto;
+}
+
+.storefront-legal-doc .legal-doc-table {
+  width: 100%;
+  min-width: 320px;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+}
+
+.storefront-legal-doc .legal-doc-table th,
+.storefront-legal-doc .legal-doc-table td {
+  padding: 0.5rem 0.65rem;
+  border: 1px solid var(--sp-border);
+  text-align: left;
+  vertical-align: top;
+}
+
+.storefront-legal-doc .legal-doc-table th {
+  background: var(--sp-bg);
+  font-weight: 600;
+  color: var(--sp-text-primary);
+}

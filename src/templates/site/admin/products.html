@@ -1,0 +1,97 @@
+{% extends "site/admin/base.html" %}
+{% from "site/admin/partials/_admin_ui_macros.html" import admin_page_head, admin_btn_pill %}
+{% block admin_page %}products{% endblock %}
+{% block title %}Товары — Admin{% endblock %}
+{% block content %}
+{% set active_tab = tab | default('list') %}
+{% if catalog_summary is defined and catalog_summary %}
+  {% set products_page_sub = catalog_summary.included ~ ' в каталоге · ' ~ catalog_summary.visible ~ ' на сайте' ~ (' · ' ~ translate_sport_type(top) if top else '') %}
+{% else %}
+  {% set products_page_sub = 'Каталог и остатки' %}
+{% endif %}
+<div class="admin-page products-page products-page--catalog {% if selected_id and active_tab == 'list' %}products-page--detail-open{% endif %}">
+  {% call admin_page_head('Товары', sub=products_page_sub, sub_id='admin-products-page-sub', sub_inner_id='admin-products-page-sub-text') %}
+    <a class="admin-btn-pill admin-btn-pill--secondary" href="/internal/admin/products/export.csv">Скачать CSV</a>
+    {{ admin_btn_pill('+ Новый товар', href='/internal/admin/products/new') }}
+  {% endcall %}
+
+  {% if success or error %}
+  {% include "site/admin/partials/_flash.html" %}
+  {% endif %}
+  <div id="admin-products-flash" class="orders-inline-flash" hidden></div>
+
+  <div class="admin-page__toolbar products-page__toolbar">
+    <nav class="products-page-tabs" aria-label="Разделы товаров">
+      <a href="/internal/admin/products?tab=list&view={{ view }}&top={{ top }}" class="products-page-tabs__link {% if active_tab == 'list' %}is-active{% endif %}">Список</a>
+      <a href="/internal/admin/products?tab=bulk&view={{ view }}&top={{ top }}" class="products-page-tabs__link {% if active_tab == 'bulk' %}is-active{% endif %}">Массовые</a>
+      <a href="/internal/admin/products?tab=brands" class="products-page-tabs__link {% if active_tab == 'brands' %}is-active{% endif %}">Бренды</a>
+    </nav>
+
+    {% if active_tab == 'list' %}
+    <div id="admin-products-tree-pills">
+      {% include "site/admin/partials/_catalog_tree_pills.html" %}
+    </div>
+    {% endif %}
+  </div>
+
+  {% if active_tab == 'list' %}
+  <form id="admin-products-filters" class="hidden">
+    <input type="hidden" name="view" value="{{ view }}" id="admin-products-view" />
+    <input type="hidden" name="inclusion" value="{{ inclusion | default('included') }}" id="admin-products-inclusion" />
+    <input type="hidden" name="site" value="{{ site | default('visible') }}" id="admin-products-site" />
+    <input type="hidden" name="reason" value="{{ reason | default('all') }}" id="admin-products-reason" />
+    <input type="hidden" name="top" value="{{ top }}" id="admin-products-top" />
+    <input type="hidden" name="page" value="{{ page }}" id="admin-products-page" />
+    <input type="hidden" name="q" value="{{ q or '' }}" id="admin-products-q" />
+    <input type="hidden" name="sort" value="{{ sort or '' }}" id="admin-products-sort" />
+    <input type="hidden" name="sort_price" value="{{ sort_price or '' }}" id="admin-products-sort-price" />
+    {% if category %}<input type="hidden" name="category" value="{{ category }}" />{% endif %}
+    {% if brand %}<input type="hidden" name="brand" value="{{ brand }}" />{% endif %}
+    {% if selected_id %}<input type="hidden" name="id" value="{{ selected_id }}" />{% endif %}
+  </form>
+
+  <div class="products-page__workspace">
+    <aside class="products-split__list" aria-label="Список товаров">
+      <div
+        id="admin-products-table"
+        class="admin-split-host products-split__list-host"
+        hx-get="/internal/admin/products/table"
+        hx-include="#admin-products-filters"
+        hx-trigger="load"
+        hx-swap="innerHTML"
+      >
+        <div class="empty muted">Загрузка…</div>
+      </div>
+    </aside>
+    <section
+      id="admin-product-detail"
+      class="products-split__detail"
+      {% if selected_id %}
+      hx-get="/internal/admin/products/{{ selected_id }}/detail?view={{ view }}&inclusion={{ inclusion | default('included') }}&site={{ site | default('visible') }}&reason={{ reason | default('all') }}&top={{ top }}&page={{ page }}{% if category %}&category={{ category }}{% endif %}{% if brand %}&brand={{ brand }}{% endif %}{% if q %}&q={{ q | urlencode }}{% endif %}{% if sort %}&sort={{ sort }}{% elif sort_price %}&sort_price={{ sort_price }}{% endif %}"
+      hx-trigger="load"
+      hx-swap="innerHTML"
+      {% endif %}
+    >
+      {% if not selected_id %}
+      {% include "site/admin/partials/product_detail_empty.html" %}
+      {% endif %}
+    </section>
+  </div>
+  {% else %}
+  <div class="products-page__workspace">
+    <div class="products-split__list products-tab-pane" aria-label="{% if active_tab == 'brands' %}Бренды{% else %}Массовые действия{% endif %}">
+      <div id="admin-products-tab-panel" class="products-tab-pane__host">
+        {% if active_tab == 'bulk' %}
+        {% include "site/admin/partials/products_bulk.html" %}
+        {% elif active_tab == 'brands' %}
+        {% include "site/admin/partials/products_brands.html" %}
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  {% endif %}
+</div>
+<template id="products-detail-empty-template">
+  {% include "site/admin/partials/product_detail_empty.html" %}
+</template>
+{% endblock %}

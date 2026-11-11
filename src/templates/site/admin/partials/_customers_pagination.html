@@ -1,0 +1,81 @@
+{% set pagination_pages = pagination_pages | default(pagination_page_window(page, total_pages)) %}
+{% if total_pages > 1 %}
+<nav class="admin-pagination" aria-label="Страницы клиентов">
+  {% if page > 1 %}
+  <button
+    type="button"
+    class="btn btn--sm btn--ghost"
+    title="Предыдущая"
+    aria-label="Предыдущая страница"
+    hx-get="/internal/admin/customers/table"
+    hx-target="#admin-customers-table"
+    hx-include="#admin-customers-filters"
+    hx-swap="innerHTML"
+    hx-on:htmx:config-request="adminCustomersBeforePageChange(event, {{ page - 1 }})"
+  >‹</button>
+  {% endif %}
+
+  {% if pagination_pages[0] > 1 %}
+  <button
+    type="button"
+    class="btn btn--sm btn--ghost"
+    aria-label="Страница 1"
+    hx-get="/internal/admin/customers/table"
+    hx-target="#admin-customers-table"
+    hx-include="#admin-customers-filters"
+    hx-swap="innerHTML"
+    hx-on:htmx:config-request="adminCustomersBeforePageChange(event, 1)"
+  >1</button>
+  {% if pagination_pages[0] > 2 %}
+  <span class="admin-pagination__gap" aria-hidden="true">…</span>
+  {% endif %}
+  {% endif %}
+
+  {% for p in pagination_pages %}
+  {% if p == page %}
+  <button type="button" class="btn btn--sm admin-pagination__current" aria-current="page">{{ p }}</button>
+  {% else %}
+  <button
+    type="button"
+    class="btn btn--sm btn--ghost"
+    aria-label="Страница {{ p }}"
+    hx-get="/internal/admin/customers/table"
+    hx-target="#admin-customers-table"
+    hx-include="#admin-customers-filters"
+    hx-swap="innerHTML"
+    hx-on:htmx:config-request="adminCustomersBeforePageChange(event, {{ p }})"
+  >{{ p }}</button>
+  {% endif %}
+  {% endfor %}
+
+  {% if pagination_pages[-1] < total_pages %}
+  {% if pagination_pages[-1] < total_pages - 1 %}
+  <span class="admin-pagination__gap" aria-hidden="true">…</span>
+  {% endif %}
+  <button
+    type="button"
+    class="btn btn--sm btn--ghost"
+    aria-label="Страница {{ total_pages }}"
+    hx-get="/internal/admin/customers/table"
+    hx-target="#admin-customers-table"
+    hx-include="#admin-customers-filters"
+    hx-swap="innerHTML"
+    hx-on:htmx:config-request="adminCustomersBeforePageChange(event, {{ total_pages }})"
+  >{{ total_pages }}</button>
+  {% endif %}
+
+  {% if page < total_pages %}
+  <button
+    type="button"
+    class="btn btn--sm btn--ghost"
+    title="Следующая"
+    aria-label="Следующая страница"
+    hx-get="/internal/admin/customers/table"
+    hx-target="#admin-customers-table"
+    hx-include="#admin-customers-filters"
+    hx-swap="innerHTML"
+    hx-on:htmx:config-request="adminCustomersBeforePageChange(event, {{ page + 1 }})"
+  >›</button>
+  {% endif %}
+</nav>
+{% endif %}

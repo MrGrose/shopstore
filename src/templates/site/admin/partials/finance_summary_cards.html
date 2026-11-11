@@ -1,0 +1,33 @@
+{% set totals = report.totals %}
+{% set gp_margin = finance_margin_percent(totals.gross_profit, totals.turnover) %}
+{% set np_margin = finance_margin_percent(totals.net_profit, totals.turnover) %}
+{% set avg_order = finance_avg_order_rub(totals.turnover, totals.orders_count) %}
+<section class="finance-summary" aria-label="Итоги периода">
+  <div class="finance-summary__card">
+    <div class="finance-summary__label">Заказы</div>
+    <div class="finance-summary__value mono">{{ format_finance_count(totals.orders_count) }}</div>
+    <div class="finance-summary__sub">товаров {{ format_finance_count(totals.items_count) }}</div>
+  </div>
+  <div class="finance-summary__card">
+    <div class="finance-summary__label">Средний чек</div>
+    <div class="finance-summary__value mono">{{ avg_order or "—" }}</div>
+  </div>
+  <div class="finance-summary__card">
+    <div class="finance-summary__label">Оборот</div>
+    <div class="finance-summary__value mono">{{ format_finance_rub(totals.turnover) }}</div>
+  </div>
+  <div class="finance-summary__card">
+    <div class="finance-summary__label">Валовая прибыль</div>
+    <div class="finance-summary__value mono finance-summary__value--profit">{{ format_finance_rub(totals.gross_profit) }}</div>
+    {% if gp_margin %}
+    <div class="finance-summary__sub">{{ gp_margin }}% маржа</div>
+    {% endif %}
+  </div>
+  <div class="finance-summary__card">
+    <div class="finance-summary__label">Чистая прибыль</div>
+    <div class="finance-summary__value mono finance-summary__value--profit">{{ format_finance_rub(totals.net_profit) }}</div>
+    {% if np_margin %}
+    <div class="finance-summary__sub">{{ np_margin }}% маржа</div>
+    {% endif %}
+  </div>
+</section>

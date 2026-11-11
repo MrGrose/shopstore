@@ -1,0 +1,422 @@
+{% from "site/admin/partials/_order_event_timeline.html" import render_event_rows %}
+{% from "site/admin/partials/_orders_notify_checkbox.html" import render_orders_notify_checkbox, render_rail_notify %}
+{% from "site/admin/partials/_payment_state_pill.html" import render_payment_state_pill %}
+{% from "site/admin/partials/_payment_attempts_list.html" import render_payment_attempts_list %}
+{% from "site/admin/partials/_payment_tech_block.html" import render_payment_tech_block %}
+{% from "site/admin/partials/_order_availability_stock_check.html" import availability_supplier_check %}
+{% from "site/admin/partials/_order_action_rail_macros.html" import rail_state_class, rail_open_attr, rail_locked_hint %}
+{% macro detail_card_title(icon, title) %}
+<span class="orders-detail-card__title-wrap">
+  {{ admin_icon(icon, "ico orders-detail-card__icon") }}
+  <h2 class="ac-card__title">{{ title }}</h2>
+</span>
+{% endmacro %}
+{% macro notification_channel_label(channel) -%}
+{%- if channel == 'telegram' -%}Telegram{%- elif channel == 'email' -%}Email{%- else -%}{{ channel | capitalize }}{%- endif -%}
+{%- endmacro %}
+{% macro notification_channels_summary(channels) -%}
+{%- for channel in channels or [] -%}
+{{ notification_channel_label(channel) }}{% if not loop.last %} · {% endif %}
+{%- endfor -%}
+{%- endmacro %}
+{% macro address_copy_field(label, value, field_id, class_name='') %}
+<div class="orders-copy-field {{ class_name }}">
+  <span class="orders-copy-field__label">{{ label }}</span>
+  <div class="orders-copy-field__row">
+    <span class="orders-copy-field__value" id="{{ field_id }}">{{ value }}</span>
+    <button
+      type="button"
+      class="orders-copy-btn"
+      data-copy-target="{{ field_id }}"
+      title="Копировать"
+      aria-label="Копировать {{ label }}"
+      {% if not value or value == '—' %}disabled{% endif %}
+    >
+      {{ admin_icon("copy", "ico ico--sm") }}
+    </button>
+  </div>
+</div>
+{% endmacro %}
+{% if not order %}
+<div class="orders-empty">
+  {{ admin_icon("orders", "ico orders-empty__icon") }}
+  <p>{{ error or 'Заказ не найден' }}</p>
+</div>
+{% else %}
+{% set journey = order_journey | default({'customer_notification_count': 0, 'stages': []}) %}
+<section class="order-journey" aria-label="Путь заказа" style="--journey-progress: {{ journey.progress_percent | default(0) }}%;">
+  <div class="order-journey__scroll">
+    <div class="order-journey__progress" aria-hidden="true"><span></span></div>
+    <ol class="order-journey__steps">
+      {% for stage in journey.stages %}
+      <li class="order-journey__step order-journey__step--{{ stage.state }}">
+        <span class="order-journey__node" aria-hidden="true">{{ stage.number }}</span>
+        <div class="order-journey__body">
+          <strong class="order-journey__step-title">{{ stage.title }}</strong>
+          <span class="order-journey__step-sub">{{ stage.subtitle }}</span>
+          {% for fact in stage.facts %}
+          <span class="order-journey__fact mono">{{ fact }}</span>
+          {% endfor %}
+          {% if stage.date %}<time class="order-journey__date mono">{{ stage.date }}</time>{% endif %}
+          {% if stage.notify_badges %}
+          <div class="order-journey__badges">
+            {% for badge in stage.notify_badges %}
+            <span class="order-journey__badge order-journey__badge--{{ badge.state }}">
+              {{ badge.channel }}{% if badge.state == 'sent' %} ✓{% elif badge.state == 'waiting' %} …{% elif badge.state == 'error' %} !{% else %} —{% endif %}
+            </span>
+            {% endfor %}
+          </div>
+          {% endif %}
+        </div>
+      </li>
+      {% endfor %}
+    </ol>
+  </div>
+</section>
+{% set order_is_completed = order.status == 'completed' %}
+{% set order_is_status_locked = order.status in ('completed', 'cancelled') %}
+{% set order_is_terminal = order.status in ('completed', 'cancelled', 'failed') %}
+{% set rail = admin_action_rail | default({'active_step': 'terminal', 'callout': none, 'alert': none, 'steps': {}}) %}
+{% set rail_steps = rail.steps | default({}) %}
+{% set order_notify_channels = order.notification_channels or [] %}
+
+{% set composition_edit_allowed = (
+  (composition_edit_allowed if composition_edit_allowed is defined else (order.payment_paid_at is none))
+  and not order_is_terminal
+  and rail_steps.get('composition', {}).get('body_editable')
+) %}
+
+<div class="orders-detail-layout">
+  <aside class="orders-detail-side orders-detail-summary" data-order-summary>
+    <div class="orders-detail-summary__head">
+      <h2>Информация о заказе</h2>
+      <span class="orders-detail-summary__readonly">{{ admin_icon("lock", "ico ico--sm") }} Только просмотр</span>
+    </div>
+    <div class="orders-detail-summary__body">
+      <div class="order-summary-mock-block order-summary-mock-grid order-summary-mock-grid--2" data-summary-steps="1">
+        <div>
+          <div class="order-summary-field-label">Клиент</div>
+          <div class="order-summary-mock-client__name">{{ order.user_name or 'No name' }}</div>
+          <div class="order-summary-mock-client__line mono">{{ order.user_phone or 'No phone' }}</div>
+          {% if order.user_telegram_username %}
+          <div class="order-summary-mock-client__line">@{{ order.user_telegram_username }}</div>
+          {% endif %}
+          {% if order.user_email %}
+          <div class="order-summary-mock-client__line">{{ order.user_email }}</div>
+          {% endif %}
+          {% if order.notification_channels %}
+          <div class="order-summary-mock-client__line">Уведомления: {{ notification_channels_summary(order.notification_channels) }}</div>
+          {% endif %}
+          {% if is_new_customer %}<span class="orders-table__new-badge order-summary-mock-client__badge">Новый клиент</span>{% endif %}
+        </div>
+        <div>
+          <div class="order-summary-field-label">Адрес доставки</div>
+          {% if order.last_name or order.first_name %}
+          <div class="order-summary-mock-client__name">{{ [order.last_name, order.first_name] | select | join(' ') }}</div>
+          {% endif %}
+          <div class="order-summary-mock-address">
+            {% set address_parts = [order.city, order.street, order.house, order.apartment] | select | list %}
+            {{ address_parts | join(', ') if address_parts else '—' }}
+          </div>
+          {% if order.postal_code %}
+          <div class="order-summary-mock-client__line mono">{{ order.postal_code }}</div>
+          {% endif %}
+          {% if order.phone %}
+          <div class="order-summary-mock-client__line mono">{{ order.phone }}</div>
+          {% endif %}
+        </div>
+      </div>
+
+      <hr class="order-summary-mock-divider">
+
+      <div class="order-summary-mock-block" data-summary-steps="2 3">
+        <div class="order-summary-field-label order-summary-field-label--spaced">Состав заказа</div>
+        {% if order.items %}
+        <div class="order-summary-mock-lines">
+          {% for item in order.items %}
+          <div class="order-summary-mock-line">
+            {% if item.product_image_url %}
+            <img class="order-summary-mock-line__thumb" src="{{ item.product_image_url }}" alt="" loading="lazy" />
+            {% else %}
+            <span class="order-summary-mock-line__thumb order-summary-mock-line__thumb--empty" aria-hidden="true">{{ (item.product_title or 'Т')[0:2] | upper }}</span>
+            {% endif %}
+            <div class="order-summary-mock-line__info">
+              {% if item.product_id %}
+              <a
+                href="/internal/admin/products?id={{ item.product_id }}&inclusion=all&site=all{% if item.variant_sku %}&q={{ item.variant_sku | urlencode }}{% elif item.product_external_id %}&q={{ item.product_external_id | urlencode }}{% endif %}"
+                class="order-summary-mock-line__title order-summary-mock-line__title--link"
+                target="_blank"
+                rel="noopener noreferrer"
+                title="Открыть товар в каталоге"
+              >{{ item.product_title or 'Товар' }}</a>
+              {% else %}
+              <div class="order-summary-mock-line__title">{{ item.product_title or 'Товар' }}</div>
+              {% endif %}
+              {% set variant_options = [item.variant_option1_ru, item.variant_option2_ru, item.variant_option3_ru] | select | list %}
+              {% if item.variant_sku or variant_options %}
+              <div class="order-summary-mock-line__meta">
+                {% if item.variant_sku %}
+                  {% if item.product_url %}
+                  <a href="{{ item.product_url }}" class="order-summary-mock-line__sku mono" target="_blank" rel="noopener noreferrer" title="Открыть на сайте поставщика">{{ item.variant_sku }}</a>
+                  {% else %}
+                  <span class="order-summary-mock-line__sku mono">{{ item.variant_sku }}</span>
+                  {% endif %}
+                {% endif %}
+                {% if item.variant_sku and variant_options %} · {% endif %}
+                {% if variant_options %}{{ variant_options | join(' · ') }}{% endif %}
+              </div>
+              {% endif %}
+            </div>
+            <span class="order-summary-mock-line__qty mono">× {{ item.quantity }}</span>
+            {% set eur_map = supplier_order_estimate.get('item_eur_by_id') or {} if supplier_order_estimate else {} %}
+            {% set item_id_key = item.id|string %}
+            {% set line_eur = eur_map.get(item_id_key) or eur_map.get(item.id) %}
+            <span class="order-summary-mock-line__money">
+              <span class="order-summary-mock-line__price mono">{{ (item.unit_price * item.quantity) if item.unit_price and item.quantity else '—' }} ₽</span>
+              {% if line_eur %}
+              <span class="order-summary-mock-line__eur mono">{{ line_eur }} €</span>
+              {% endif %}
+            </span>
+          </div>
+          {% endfor %}
+        </div>
+        <div class="order-summary-mock-totals">
+          <div class="order-summary-mock-totals__row"><span>Товары</span><span class="mono">{{ order.items_subtotal_amount }} ₽</span></div>
+          {% if supplier_order_estimate %}
+          <div class="order-summary-mock-totals__row">
+            <span>Себестоимость</span>
+            <span class="mono">{{ supplier_order_estimate.goods_cost_eur }} €</span>
+          </div>
+          {% endif %}
+          {% if order.discount_items_amount and order.discount_items_amount > 0 %}
+          <div class="order-summary-mock-totals__row order-summary-mock-totals__row--discount">
+            <span>Скидка{% if order.promo_code_applied %} {{ order.promo_code_applied }}{% endif %}</span>
+            <span class="mono">−{{ order.discount_items_amount }} ₽</span>
+          </div>
+          {% endif %}
+          <div class="order-summary-mock-totals__row">
+            <span>Доставка</span>
+            <span class="mono">{% if order.delivery_fee_amount and order.delivery_fee_amount > 0 %}{{ order.delivery_fee_amount }} ₽{% else %}Бесплатно{% endif %}</span>
+          </div>
+          {% if supplier_order_estimate %}
+          <div class="order-summary-mock-totals__row">
+            <span>Доставка €</span>
+            <span class="mono">{{ supplier_order_estimate.client_shipping_eur }} €</span>
+          </div>
+          <div class="order-summary-mock-totals__row">
+            <span>Мин. заказов TP</span>
+            <span class="mono">{{ supplier_order_estimate.minimum_orders }}</span>
+          </div>
+          {% endif %}
+          <div class="order-summary-mock-totals__row order-summary-mock-totals__row--total">
+            <span>Итого</span><span class="mono">{{ order.total_amount }} ₽</span>
+          </div>
+        </div>
+        {% else %}
+        <p class="muted small">Позиций нет</p>
+        {% endif %}
+      </div>
+
+      <hr class="order-summary-mock-divider">
+
+      <div class="order-summary-mock-block order-summary-mock-grid order-summary-mock-grid--2" data-summary-steps="4 5 6">
+        <div>
+          <div class="order-summary-field-label">Оплата</div>
+          <div class="order-summary-mock-pay">
+            <span class="order-summary-mock-pay__method">{{ order.payment_method_label or '—' }}</span>
+            {{ render_payment_state_pill(order) }}
+          </div>
+          {% if order.payment_order_id or order.payment_paid_at_short_display %}
+          <div class="order-summary-mock-client__line mono">
+            {% if order.payment_order_id %}{{ order.payment_order_id }}{% endif %}{% if order.payment_order_id and order.payment_paid_at_short_display %} · {% endif %}{% if order.payment_paid_at_short_display %}{{ order.payment_paid_at_short_display }}{% endif %}
+          </div>
+          {% endif %}
+        </div>
+        <div>
+          <div class="order-summary-field-label">Поставщик</div>
+          <div class="order-summary-mock-client__name">Supplier-Demo</div>
+          {% for parcel in admin_supplier_parcels or [] %}
+          <div class="order-summary-supplier-parcel">
+            <div class="order-summary-supplier-parcel__title">
+              {{ admin_icon("box", "ico ico--sm") }} Посылка {{ parcel.seq }}
+            </div>
+            <div class="order-summary-mock-client__line mono">{{ parcel.tp_id }}</div>
+            {% if parcel.supplier_tracking_number %}
+            <div class="order-summary-mock-client__line mono">{{ parcel.supplier_tracking_number }}</div>
+            {% elif parcel.awaiting_tracking %}
+            <div class="order-summary-mock-client__line">Трек-номер ещё не получен</div>
+            {% endif %}
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <div class="orders-detail-main orders-detail-actions{% if order_is_terminal %} orders-detail-actions--completed{% endif %}" data-order-action-rail>
+    {% if rail.alert %}
+    <div class="orders-alert orders-alert--danger orders-action-rail-alert" role="alert">{{ rail.alert }}</div>
+    {% endif %}
+    <div class="orders-action-rail-page">
+      {% include "site/admin/partials/_order_action_rail_shell.html" %}
+    </div>
+    <section class="orders-action-rail-extras" aria-label="Дополнительные действия">
+    <details class="ac-card orders-detail-card orders-detail-action orders-detail-action--status orders-detail-action--extra{{ rail_state_class('status_manual', rail_steps) }}"{{ rail_open_attr('status_manual', rail_steps) }}>
+      <summary class="ac-card__head orders-detail-card__summary">
+        {{ detail_card_title("processes", "Статус заказа") }}
+          <span class="orders-action-rail-status-note">Только для исключений</span>
+        <span class="orders-detail-card__head-end">
+          <span class="ac-card__meta">
+            <span class="orders-pill orders-pill--{{ order.status }}">
+              {{ order_status_display }}
+            </span>
+          </span>
+          <span class="orders-detail-card__chevron" aria-hidden="true"></span>
+        </span>
+      </summary>
+      <div class="ac-card__body">
+        {% if order_is_status_locked %}
+        {% if order.status == 'completed' %}
+        <p class="orders-field__hint orders-detail-terminal-note">Заказ выполнен.</p>
+        {% for row in event_rows %}
+        {% if row.event_type == 'delivered_to_customer' and row.created_at_display %}
+        <p class="orders-field__hint mono">{{ row.created_at_display }}</p>
+        {% endif %}
+        {% endfor %}
+        {% elif order.status == 'cancelled' %}
+        <p class="orders-field__hint orders-detail-terminal-note">Заказ отменён.</p>
+        {% for row in event_rows %}
+        {% if row.event_type in ('order_cancelled', 'order_auto_cancelled_payment_timeout', 'order_cancelled_by_customer') and row.created_at_display %}
+        <p class="orders-field__hint mono">{{ row.created_at_display }}</p>
+        {% endif %}
+        {% endfor %}
+        {% endif %}
+        {% else %}
+        {% if status_select_hint %}
+        <p class="orders-field__hint">{{ status_select_hint }}</p>
+        {% endif %}
+        <form method="post" action="/internal/admin/orders/{{ order.id }}/status" class="orders-form-stack" data-order-status-form data-order-id="{{ order.id }}">
+          {% include "site/admin/partials/_orders_return_fields.html" %}
+          <div class="orders-status-control-row">
+            <div class="orders-field orders-field--grow">
+              <label class="orders-field__label" for="order-status-{{ order.id }}">Новый статус</label>
+              <select id="order-status-{{ order.id }}" name="status" class="orders-field__input orders-field__select" required data-order-status-select>
+                {% for code in status_choices %}
+                <option value="{{ code }}" {% if order.status == code %}selected{% endif %}>{{ status_labels.get(code, code) }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            {{ render_rail_notify('status_manual', rail_steps, order_notify_channels) }}
+          </div>
+          <div class="orders-field orders-status-message-field">
+            <div class="orders-status-message-head">
+              <label class="orders-field__label" for="order-status-notify-{{ order.id }}">Текст статуса</label>
+              <div class="orders-status-message-tabs" aria-label="Просмотр текста по статусам">
+                {% for code in status_choices %}
+                <button type="button" class="orders-status-message-tab{% if order.status == code %} is-active{% endif %}" data-order-status-tab="{{ code }}">{{ status_labels.get(code, code) }}</button>
+                {% endfor %}
+              </div>
+            </div>
+            <textarea id="order-status-notify-{{ order.id }}" name="custom_message" class="orders-field__textarea" rows="2" placeholder="Текст для клиента при смене статуса" data-order-status-custom-text></textarea>
+          </div>
+          <button type="submit" class="admin-btn-pill admin-btn-pill--block">Обновить статус</button>
+        </form>
+        {% endif %}
+      </div>
+    </details>
+
+    <details class="ac-card orders-detail-card orders-detail-action orders-detail-action--extra orders-detail-action--comment">
+      <summary class="ac-card__head orders-detail-card__summary">
+        {{ detail_card_title("edit", "Внутренний комментарий") }}
+        <span class="orders-detail-card__head-end">
+          <span class="orders-detail-card__chevron" aria-hidden="true"></span>
+        </span>
+      </summary>
+      <div class="ac-card__body">
+        <form method="post" action="/internal/admin/orders/{{ order.id }}/comment" class="orders-form-stack">
+          {% include "site/admin/partials/_orders_return_fields.html" %}
+          <div class="orders-field">
+            <textarea name="event_message" class="orders-field__textarea" rows="3" placeholder="Заметки видны только менеджерам…"></textarea>
+          </div>
+          <div class="orders-form-row">
+            <button type="submit" class="admin-btn-pill">Сохранить</button>
+          </div>
+        </form>
+      </div>
+    </details>
+
+    {% if not order_is_terminal %}
+    <details class="ac-card orders-detail-card orders-detail-action orders-detail-action--extra orders-detail-action--notify">
+      <summary class="ac-card__head orders-detail-card__summary">
+        {{ detail_card_title("send", "Написать клиенту") }}
+        <span class="orders-detail-card__head-end">
+          {% if order.notification_channels %}
+          <span class="ac-card__meta">{{ notification_channels_summary(order.notification_channels) }}</span>
+          {% endif %}
+          <span class="orders-detail-card__chevron" aria-hidden="true"></span>
+        </span>
+      </summary>
+      <div class="ac-card__body">
+        <form method="post" action="/internal/admin/orders/{{ order.id }}/notify" class="orders-form-stack">
+          {% include "site/admin/partials/_orders_return_fields.html" %}
+          <div class="orders-field">
+            <div class="orders-field__label">Канал отправки</div>
+            {% set selected_notification_channels = order.notification_channels or ['telegram'] %}
+            {% set can_notify_telegram = 'telegram' in selected_notification_channels and order.user_telegram_id %}
+            {% set can_notify_email = 'email' in selected_notification_channels and order.notification_email %}
+            {% set can_notify_both = can_notify_telegram and can_notify_email %}
+            {% if can_notify_telegram %}
+            <label><input type="radio" name="channel" value="telegram" checked> Telegram</label>
+            {% endif %}
+            {% if can_notify_email %}
+            <label><input type="radio" name="channel" value="email"{% if not can_notify_telegram %} checked{% endif %}> Email</label>
+            {% endif %}
+            {% if can_notify_both %}
+            <label><input type="radio" name="channel" value="both"> Оба</label>
+            {% endif %}
+            {% if not can_notify_telegram and not can_notify_email %}
+            <span class="orders-field__hint">Нет доступных каналов уведомлений.</span>
+            {% endif %}
+          </div>
+          <div class="orders-field">
+            <textarea id="order-notify-{{ order.id }}" name="message" class="orders-field__textarea" rows="2" placeholder="Текст сообщения…"></textarea>
+          </div>
+          <div class="orders-form-row">
+            <button type="submit" class="admin-btn-pill">
+              {{ admin_icon("send", "ico ico--sm") }}
+              <span data-notify-channel-label>Отправить сообщение</span>
+            </button>
+          </div>
+        </form>
+        <script>
+          (() => {
+            const form = document.currentScript?.parentElement?.querySelector("form");
+            if (!form) return;
+            const label = form.querySelector("[data-notify-channel-label]");
+            const update = () => {
+              const channel = form.querySelector("input[name='channel']:checked")?.value;
+              if (label) label.textContent = channel === "email" ? "Отправить на email" : channel === "both" ? "Отправить в оба канала" : "Отправить в Telegram";
+            };
+            form.querySelectorAll("input[name='channel']").forEach((input) => input.addEventListener("change", update));
+            update();
+          })();
+        </script>
+      </div>
+    </details>
+    {% endif %}
+
+    <details class="ac-card orders-detail-card orders-detail-action orders-detail-action--extra orders-detail-action--history">
+      <summary class="ac-card__head orders-detail-card__summary">
+        {{ detail_card_title("clock", "История изменений") }}
+        <span class="orders-detail-card__head-end">
+          <span class="orders-detail-card__chevron" aria-hidden="true"></span>
+        </span>
+      </summary>
+      <div class="ac-card__body ac-card__body--flush orders-events-body">
+        {{ render_event_rows(event_rows) }}
+      </div>
+    </details>
+    </section>
+  </div>
+</div>
+{% endif %}

@@ -1,0 +1,21 @@
+{% for row in rows %}
+<li class="commission-history__item commission-history__item--eur">
+  <div class="commission-history__eur-main">
+    <span class="commission-history__date">{{ format_datetime_msk(row.recorded_at, with_tz_label=False) or '—' }}</span>
+    <span class="commission-history__meta muted">{{ row.eur_rate_source or '—' }} · {{ trigger_labels.get(row.trigger, row.trigger) }}</span>
+  </div>
+  <span class="commission-history__value mono">{{ row.eur_rate }}</span>
+</li>
+{% endfor %}
+{% if has_more and last_id %}
+<li class="commission-history__more">
+  <button
+    type="button"
+    class="btn btn--sm"
+    hx-get="/internal/admin/prices/eur-history?before_id={{ last_id }}"
+    hx-target="#eur-rate-history-rows"
+    hx-swap="beforeend"
+    hx-on::after-request="this.closest('li').remove()"
+  >Загрузить ещё</button>
+</li>
+{% endif %}

@@ -1,0 +1,67 @@
+{% extends "site/admin/base.html" %}
+{% from "site/admin/partials/_admin_ui_macros.html" import admin_page_head, admin_btn_pill %}
+{% block admin_page %}products{% endblock %}
+{% block title %}Новый товар — Admin{% endblock %}
+{% block content %}
+<div class="admin-page products-page products-page--narrow">
+{% call admin_page_head('Новый товар', sub='Ручное добавление в каталог', back_href='/internal/admin/products', back_label='Каталог') %}{% endcall %}
+
+  {% include "site/admin/partials/_flash.html" %}
+
+  <form class="products-form" method="post" action="/internal/admin/products/create" id="admin-product-create-form">
+    <section class="ac-card products-form-card">
+      <div class="ac-card__head"><h2 class="ac-card__title">Основное</h2></div>
+      <div class="ac-card__body admin-form-column">
+        <div class="field"><label class="label">Название *</label><input name="title" class="input sp-input" required /></div>
+        <div class="field"><label class="label">Бренд</label><input name="brand" class="input sp-input" /></div>
+        <div class="field"><label class="label">Описание</label><textarea name="description" class="textarea sp-input" rows="4"></textarea></div>
+        <div class="field"><label class="label">Ссылка на товар *</label><input name="product_url" class="input sp-input" type="url" required /></div>
+      </div>
+    </section>
+
+    <section class="ac-card products-form-card">
+      <div class="ac-card__head"><h2 class="ac-card__title">Изображения</h2></div>
+      <div class="ac-card__body admin-form-column">
+        <div class="field">
+          <label class="label">Картинка (URL)</label>
+          <input name="image_url" id="admin-product-image-url" class="input sp-input" type="url" placeholder="https://…" />
+          <p class="hint">Или загрузите файлы ниже — URL добавится в галерею.</p>
+        </div>
+        <div id="admin-product-gallery-preview" class="products-gallery-preview" hidden></div>
+        <div id="admin-product-gallery-hidden"></div>
+      </div>
+    </section>
+
+    <section class="ac-card products-form-card">
+      <div class="ac-card__head"><h2 class="ac-card__title">Цены</h2></div>
+      <div class="ac-card__body">
+        <div class="form-grid">
+          <div class="field"><label class="label">Цена продажи, ₽</label><input name="sale_price" class="input sp-input" type="text" value="0" /></div>
+          <div class="field"><label class="label">Зачёркнутая, ₽</label><input name="regular_price" class="input sp-input" type="text" value="0" /></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="ac-card products-form-card">
+      <div class="ac-card__head"><h2 class="ac-card__title">Остатки и публикация</h2></div>
+      <div class="ac-card__body admin-form-column">
+        <div class="field"><label class="label">Остаток</label><input name="stock" class="input sp-input" type="number" min="0" value="0" style="max-width:160px;" /></div>
+        <label class="check"><input type="checkbox" name="is_active" value="true" checked /> На витрине</label>
+      </div>
+    </section>
+  </form>
+
+  <section class="ac-card products-form-card products-form-upload-card">
+    <div class="ac-card__head"><h2 class="ac-card__title">Загрузка файлов</h2></div>
+    <div class="ac-card__body admin-form-column">
+      <div class="field">
+        <label class="label" for="admin-product-image-files">Файлы галереи</label>
+        <input type="file" id="admin-product-image-files" class="input" accept="image/jpeg,image/png,image/webp" multiple />
+        <p class="hint">Загрузка вне submit-формы: в POST уходят только URL в скрытых полях галереи.</p>
+      </div>
+    </div>
+  </section>
+
+  {{ admin_btn_pill('Создать товар', type='submit', form='admin-product-create-form', extra_class='products-form__submit') }}
+</div>
+{% endblock %}

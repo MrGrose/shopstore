@@ -1,0 +1,43 @@
+<article class="metric">
+  <div class="metric__top">
+    <span class="metric__label">Заказы</span>
+    <span class="metric__icon">{{ admin_icon('orders') }}</span>
+  </div>
+  <div class="metric__value">{{ metrics.orders_action_count }}<span class="unit">шт</span></div>
+  <div class="metric__foot">
+    <span>{{ metrics.orders_foot }}</span>
+  </div>
+</article>
+<article class="metric">
+  <div class="metric__top">
+    <span class="metric__label">Парсинг каталога</span>
+    <span class="metric__icon">{{ admin_icon('processes') }}</span>
+  </div>
+  <div class="metric__value">{{ metrics.parsing_queue_value }}</div>
+  <div class="metric__foot">
+    {% if metrics.parsing_trend %}<span class="trend">{{ metrics.parsing_trend }}</span> ·{% endif %}
+    <span>{{ metrics.parsing_foot }}</span>
+  </div>
+</article>
+<article class="metric">
+  <div class="metric__top">
+    <span class="metric__label">Курс EUR</span>
+    <span class="metric__icon">{{ admin_icon('euro') }}</span>
+  </div>
+  <div class="metric__value">{% if metrics.eur_rate %}{{ metrics.eur_rate }}<span class="unit">₽</span>{% else %}—{% endif %}</div>
+  <div class="metric__foot">
+    {% if metrics.eur_trend %}<span class="trend{% if metrics.eur_trend_dir %} trend--{{ metrics.eur_trend_dir }}{% endif %}">{{ metrics.eur_trend }}</span><span class="muted"> · </span>{% endif %}
+    <span>{{ metrics.eur_foot }}</span>
+  </div>
+</article>
+<article class="metric">
+  <div class="metric__top">
+    <span class="metric__label">Здоровье</span>
+    <span class="metric__icon">{{ admin_icon('heart') }}</span>
+  </div>
+  <div class="metric__value">{{ metrics.health.value }}</div>
+  <div class="metric__foot">
+    {% if metrics.health.trend %}<span class="trend trend--{{ metrics.health.trend_dir }}">{{ metrics.health.trend }}</span> ·{% endif %}
+    <span>{{ metrics.health.foot }}</span>
+  </div>
+</article>

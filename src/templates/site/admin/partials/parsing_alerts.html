@@ -1,0 +1,86 @@
+{% set visible_alerts = overview.alerts[:3] if overview.alerts else [] %}
+{% set hidden_count = (overview.alerts|length - 3) if overview.alerts and overview.alerts|length > 3 else 0 %}
+{% set hidden_alerts = overview.alerts[3:] if hidden_count > 0 else [] %}
+
+{% if parsing_notice %}
+<div class="customers-ref-banner customers-ref-banner--ok">
+  <p class="customers-ref-banner__title">{{ parsing_notice }}</p>
+</div>
+{% endif %}
+
+{% if visible_alerts %}
+<section class="ac-card">
+  <div class="ac-card__head">
+    <h2 class="ac-card__title">Оповещение</h2>
+    <span class="ac-card__meta">{{ overview.alerts|length }} активных</span>
+  </div>
+  <div class="ac-card__body ac-card__body--flush">
+    {% for alert in visible_alerts %}
+    <div class="customers-ref-banner customers-ref-banner--row parsing-alert
+      {% if alert.level == 'err' %}customers-ref-banner--err
+      {% elif alert.level == 'info' %}customers-ref-banner--muted
+      {% else %}customers-ref-banner--warn{% endif %}">
+      <div class="parsing-alert__body">
+        <p class="customers-ref-banner__title">{{ alert.title or alert.text }}</p>
+        {% if alert.title and alert.text %}
+        <p class="customers-ref-banner__text">{{ alert.text }}</p>
+        {% endif %}
+        {% if alert.action_hint %}
+        <p class="customers-ref-banner__text parsing-alert__hint">{{ alert.action_hint }}</p>
+        {% endif %}
+      </div>
+      {% if alert.action == 'clear_stuck_claims' %}
+      <form hx-post="/internal/admin/parsing/clear-stuck-claims"
+            hx-target="#parsing-alerts"
+            hx-swap="innerHTML">
+        <button type="submit" class="customers-page-btn">{{ alert.action_label or 'Очистить' }}</button>
+      </form>
+      {% elif alert.action == 'clear_failed_jobs' %}
+      <form hx-post="/internal/admin/parsing/clear-failed-jobs"
+            hx-target="#parsing-alerts"
+            hx-swap="innerHTML"
+            hx-confirm="Удалить failed jobs из RQ? Работу заново нужно будет поставить вручную (догон / watchdog).">
+        <button type="submit" class="customers-page-btn">{{ alert.action_label or 'Очистить' }}</button>
+      </form>
+      {% endif %}
+    </div>
+    {% endfor %}
+
+    {% if hidden_count > 0 %}
+    <details class="parsing-alert-more">
+      <summary class="parsing-alert-more__summary">Ещё {{ hidden_count }}</summary>
+      {% for alert in hidden_alerts %}
+      <div class="customers-ref-banner customers-ref-banner--row parsing-alert
+        {% if alert.level == 'err' %}customers-ref-banner--err
+        {% elif alert.level == 'info' %}customers-ref-banner--muted
+        {% else %}customers-ref-banner--warn{% endif %}">
+        <div class="parsing-alert__body">
+          <p class="customers-ref-banner__title">{{ alert.title or alert.text }}</p>
+          {% if alert.title and alert.text %}
+          <p class="customers-ref-banner__text">{{ alert.text }}</p>
+          {% endif %}
+          {% if alert.action_hint %}
+          <p class="customers-ref-banner__text parsing-alert__hint">{{ alert.action_hint }}</p>
+          {% endif %}
+        </div>
+        {% if alert.action == 'clear_stuck_claims' %}
+        <form hx-post="/internal/admin/parsing/clear-stuck-claims"
+              hx-target="#parsing-alerts"
+              hx-swap="innerHTML">
+          <button type="submit" class="customers-page-btn">{{ alert.action_label or 'Очистить' }}</button>
+        </form>
+        {% elif alert.action == 'clear_failed_jobs' %}
+        <form hx-post="/internal/admin/parsing/clear-failed-jobs"
+              hx-target="#parsing-alerts"
+              hx-swap="innerHTML"
+              hx-confirm="Удалить failed jobs из RQ? Работу заново нужно будет поставить вручную (догон / watchdog).">
+          <button type="submit" class="customers-page-btn">{{ alert.action_label or 'Очистить' }}</button>
+        </form>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </details>
+    {% endif %}
+  </div>
+</section>
+{% endif %}

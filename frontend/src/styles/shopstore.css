@@ -1,0 +1,41 @@
+/* SHOPSTORE Premium Color System */
+:root {
+  --sp-radius-card: 20px;
+  --sp-radius-input: 12px;
+  --sp-radius-pill: 999px;
+  --sp-shadow-soft: 0 2px 16px rgba(0, 0, 0, 0.06);
+  --sp-font-system: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Inter", system-ui, sans-serif;
+  --font-display: var(--sp-font-system);
+  --font-body: var(--sp-font-system);
+  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+}
+
+body {
+  font-family: var(--sp-font-system);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.glass-navbar {
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+.glass-navbar-transparent {
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.sp-transition {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes sp-support-liquid {
+  0% { transform: translateX(-120%); }
+  100% { transform: translateX(220%); }
+}
+.sp-support-liquid {
+  animation: sp-support-liquid 1.4s ease-in-out infinite;
+}

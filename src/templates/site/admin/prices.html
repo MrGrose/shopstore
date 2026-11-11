@@ -1,0 +1,117 @@
+{% extends "site/admin/base.html" %}
+{% from "site/admin/partials/_admin_ui_macros.html" import admin_page_head, admin_btn_pill %}
+{% block admin_page %}prices{% endblock %}
+{% block title %}Цены — Admin{% endblock %}
+{% block content %}
+<div class="admin-page">
+{% call admin_page_head('Настройки цен', sub='Курс EUR и переоценка каталога') %}{% endcall %}
+
+{% include "site/admin/partials/_flash.html" %}
+
+<section class="metrics metrics--3" style="margin-bottom:16px;">
+  <article class="metric">
+    <div class="metric__top">
+      <span class="metric__label">Курс EUR</span>
+      <span class="metric__icon">{{ admin_icon('euro') }}</span>
+    </div>
+    <div class="metric__value">{{ settings.eur_rate }}</div>
+    <div class="metric__foot muted">
+      {% if eur_trend %}<span class="trend{% if eur_trend_dir %} trend--{{ eur_trend_dir }}{% endif %}">{{ eur_trend }}</span><span> · </span>{% endif %}
+      {% if settings.eur_rate_updated_at %}обновлён {{ format_datetime_msk(settings.eur_rate_updated_at, with_tz_label=False) or '—' }}{% else %}—{% endif %}
+    </div>
+  </article>
+  <article class="metric">
+    <div class="metric__top">
+      <span class="metric__label">Доставка</span>
+      <span class="metric__icon">{{ admin_icon('truck') }}</span>
+    </div>
+    <div class="metric__value">{{ settings.delivery_fee_eur }}<span class="unit">EUR</span></div>
+    <div class="metric__foot muted">в настройках</div>
+  </article>
+  <article class="metric">
+    <div class="metric__top">
+      <span class="metric__label">Последняя переоценка</span>
+      <span class="metric__icon">{{ admin_icon('refresh') }}</span>
+    </div>
+    <div class="metric__value" style="font-size:18px;">{% if settings.updated_at %}{{ format_datetime_msk(settings.updated_at, with_tz_label=False) or '—' }}{% else %}—{% endif %}</div>
+    <div class="metric__foot muted">все товары каталога</div>
+  </article>
+</section>
+
+<div class="prices-grid">
+  <section class="card">
+    <div class="card__head"><span class="card__title">Параметры</span></div>
+    <div class="card__body">
+      <form class="admin-form-column" method="post" action="/internal/admin/prices/settings">
+        <div class="field field--with-history">
+          <label class="label">Курс EUR</label>
+          <div class="field__row">
+            <input name="eur_rate" class="input" value="{{ settings.eur_rate }}" required />
+            {% include "site/admin/partials/_eur_rate_history_popover.html" %}
+          </div>
+        </div>
+        <div class="field field--with-history">
+          <label class="label">Комиссия сервиса (%)</label>
+          <div class="field__row">
+            <input name="service_commission_percent" class="input" value="{{ settings.service_commission_percent }}" required step="0.01" min="0" max="100" />
+            {% include "site/admin/partials/_commission_history_popover.html" %}
+          </div>
+        </div>
+        <div class="field">
+          <label class="label" for="eur-rate-multiplier">Множитель Rapira</label>
+          <input
+            id="eur-rate-multiplier"
+            name="markup_multiplier"
+            class="input"
+            type="text"
+            inputmode="decimal"
+            value="{{ '%.2f' | format(settings.markup_multiplier) }}"
+            required
+            step="0.01"
+            min="0.01"
+          />
+        </div>
+        <div class="field"><label class="label">Доставка (EUR)</label><input name="delivery_fee_eur" class="input" value="{{ settings.delivery_fee_eur }}" required /></div>
+        <div class="field">
+          <label class="label" for="global-referral-pct">Глоб. реф. %</label>
+          <input
+            id="global-referral-pct"
+            name="referral_commission_percent"
+            class="input"
+            type="text"
+            inputmode="decimal"
+            value="{{ settings.referral_commission_percent }}"
+            required
+            step="0.01"
+            min="0"
+            max="100"
+          />
+        </div>
+        {{ admin_btn_pill('Сохранить', type='submit', size='sm') }}
+      </form>
+      <div class="row row--wrap" style="margin-top:16px;gap:8px;">
+        <form method="post" action="/internal/admin/prices/refresh-rate">
+          <button type="submit" class="admin-btn-pill admin-btn-pill--secondary admin-btn-pill--sm">{{ admin_icon('refresh', 'ico--sm') }} Обновить курс EUR</button>
+        </form>
+        <form method="post" action="/internal/admin/prices/recalculate" hx-confirm="Пересчитать цены всех товаров?">
+          <button type="submit" class="admin-btn-pill admin-btn-pill--danger admin-btn-pill--sm">Переоценка</button>
+        </form>
+      </div>
+    </div>
+  </section>
+  <section class="card">
+    <div class="card__head"><span class="card__title">Калькулятор</span></div>
+    <div class="card__body stack--sm">
+      <div class="kv"><span class="kv__k">Курс</span><span class="kv__v">{{ settings.eur_rate }} / EUR</span></div>
+      <div class="kv"><span class="kv__k">Источник курса</span><span class="kv__v">{{ format_eur_rate_source_display(settings.eur_rate_source) }}</span></div>
+      <div class="kv"><span class="kv__k">Курс обновлён</span><span class="kv__v">{% if settings.eur_rate_updated_at %}{{ format_datetime_msk(settings.eur_rate_updated_at, with_tz_label=False) or '—' }}{% else %}—{% endif %}</span></div>
+      <div class="kv"><span class="kv__k">Переоценка</span><span class="kv__v">{% if settings.updated_at %}{{ format_datetime_msk(settings.updated_at, with_tz_label=False) or '—' }}{% else %}ещё не выполнялась{% endif %}</span></div>
+      <div class="kv"><span class="kv__k">Доставка</span><span class="kv__v">{{ settings.delivery_fee_eur }} EUR</span></div>
+      <div class="kv"><span class="kv__k">Комиссия сервиса</span><span class="kv__v">{{ settings.service_commission_percent }}%</span></div>
+      <div class="kv"><span class="kv__k">Глоб. реф. %</span><span class="kv__v">{{ settings.referral_commission_percent }}%</span></div>
+      <p class="small muted">Изменения применяются через переоценку каталога.</p>
+    </div>
+  </section>
+</div>
+</div>
+{% endblock %}

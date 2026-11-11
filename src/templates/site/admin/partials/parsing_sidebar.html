@@ -1,0 +1,96 @@
+{% set rolling = overview.rolling %}
+{% set throughput = overview.throughput %}
+{% set ops = overview.ops if overview.ops is defined else {} %}
+{% set rs = overview.run_status %}
+{% set lanes_data = overview.lanes_overview if overview.lanes_overview is defined else {} %}
+{% set watchdog = lanes_data.watchdog if lanes_data.watchdog is defined else {} %}
+{% set stuck_claims = rolling.stuck_claims if rolling.stuck_claims is defined else 0 %}
+{% set rq_failed = (rs.dom_queue_failed or 0) + (rs.import_queue_failed or 0) + (rs.finalize_queue_failed or 0) + (rs.translation_queue_failed or 0) %}
+{% set fresh_pct = rolling.fresh_pct if rolling.fresh_pct is defined else 0 %}
+{% set bar_pct = fresh_pct if fresh_pct <= 100 else 100 %}
+
+<section class="parsing-v2__freshness-card">
+  <div class="parsing-v2__section-head">
+    <h2 class="parsing-v2__title">Свежесть каталога</h2>
+    <span class="parsing-v2__meta">устарел, если синк &gt; {{ rolling.stale_hours }} ч</span>
+  </div>
+  <div class="parsing-v2__freshness-score">
+    <strong>{{ fresh_pct }}%</strong>
+    <span>
+      <span class="parsing-v2__dot parsing-v2__dot--{% if fresh_pct >= 90 %}ok{% elif fresh_pct >= 70 %}warn{% else %}err{% endif %}"></span>
+      {% if fresh_pct >= 90 %}норма{% elif fresh_pct >= 70 %}внимание{% else %}критично{% endif %}
+    </span>
+  </div>
+  <div class="parsing-v2__freshness-bar" aria-hidden="true">
+    <span style="width: {{ bar_pct }}%"></span>
+  </div>
+  <div class="parsing-v2__freshness-stats">
+    <div class="parsing-v2__metric">
+      <span>Устарело</span>
+      <strong class="{% if rolling.stale_count %}is-warn{% endif %}">{{ rolling.stale_count }}</strong>
+    </div>
+    <div class="parsing-v2__metric">
+      <span>За 1 ч</span>
+      <strong>{{ throughput.synced_1h }}</strong>
+    </div>
+    <div class="parsing-v2__metric">
+      <span>За 24 ч</span>
+      <strong>{{ throughput.synced_24h }}</strong>
+    </div>
+  </div>
+  <p class="parsing-v2__muted parsing-v2__freshness-foot">
+    полные {{ ops.get('catalog_complete', 0) }} · неполные {{ ops.get('catalog_incomplete', 0) }} · в каталоге {{ rolling.in_catalog }}
+  </p>
+</section>
+
+<section class="parsing-v2__maintenance-card">
+  <div class="parsing-v2__section-head">
+    <h2 class="parsing-v2__title">Обслуживание</h2>
+  </div>
+
+  <form class="parsing-v2__maint-row"
+        hx-post="/internal/admin/parsing/watchdog"
+        hx-target="#parsing-alerts"
+        hx-swap="innerHTML"
+        hx-confirm="Переотправить зависшие DOM-задачи в очередь?">
+    <button type="submit" class="parsing-v2__maint-btn">
+      <span class="parsing-v2__maint-icon" aria-hidden="true">⚙</span>
+      <span class="parsing-v2__maint-text">
+        <strong>Watchdog</strong>
+        <small>
+          {% if watchdog.last_run_age %}Последний запуск {{ watchdog.last_run_age }}{% else %}Запусков ещё не было{% endif %}
+        </small>
+      </span>
+      <span class="parsing-v2__chevron" aria-hidden="true">›</span>
+    </button>
+  </form>
+
+  <form class="parsing-v2__maint-row"
+        hx-post="/internal/admin/parsing/clear-stuck-claims"
+        hx-target="#parsing-alerts"
+        hx-swap="innerHTML">
+    <button type="submit" class="parsing-v2__maint-btn">
+      <span class="parsing-v2__maint-icon" aria-hidden="true">🗑</span>
+      <span class="parsing-v2__maint-text">
+        <strong>Очистить зависшие метки</strong>
+        <small>{{ stuck_claims }} claim-меток</small>
+      </span>
+      <span class="parsing-v2__chevron" aria-hidden="true">›</span>
+    </button>
+  </form>
+
+  <form class="parsing-v2__maint-row"
+        hx-post="/internal/admin/parsing/clear-failed-jobs"
+        hx-target="#parsing-alerts"
+        hx-swap="innerHTML"
+        hx-confirm="Удалить failed jobs из RQ? Работу заново нужно будет поставить вручную.">
+    <button type="submit" class="parsing-v2__maint-btn">
+      <span class="parsing-v2__maint-icon" aria-hidden="true">⛨</span>
+      <span class="parsing-v2__maint-text">
+        <strong>Очистить failed jobs</strong>
+        <small>{{ rq_failed }} jobs в RQ</small>
+      </span>
+      <span class="parsing-v2__chevron" aria-hidden="true">›</span>
+    </button>
+  </form>
+</section>

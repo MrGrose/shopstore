@@ -1,0 +1,129 @@
+{% if rail_step_id == 'availability' %}
+  {% if rail_step_mode == 'queue' %}
+  <p class="orders-field__hint">Этап завершён. Результат сохранён в истории заказа.</p>
+  {% elif order.status in ('created', 'processing') and order.availability_confirmation_status == 'pending' %}
+  {% if availability_stock_rows %}
+  <div class="orders-availability-supplier-results">
+    {% for row in availability_stock_rows %}
+    {{ availability_supplier_check(row) }}
+    {% endfor %}
+  </div>
+  {% endif %}
+  <div class="orders-availability-actions">
+    {% if supplier_availability_snapshot %}
+    <p class="orders-field__hint orders-availability-actions__meta">
+      Автопроверка TP:
+      {% if supplier_availability_snapshot.verdict == 'ready_for_admin' %}готово к решению
+      {% elif supplier_availability_snapshot.verdict == 'manual_review' %}нужна ручная проверка
+      {% else %}данные не получены{% endif %}
+      {% if supplier_availability_snapshot.checked_at %}
+      · {{ supplier_availability_snapshot.checked_at }}
+      {% endif %}
+    </p>
+    {% endif %}
+    <form method="post" action="/internal/admin/orders/{{ order.id }}/availability/recheck">
+      {% include "site/admin/partials/_orders_return_fields.html" %}
+      <button type="submit" class="admin-btn-pill">Автопроверка</button>
+    </form>
+  </div>
+  <form id="order-availability-form-{{ order.id }}" method="post" action="/internal/admin/orders/{{ order.id }}/availability" class="orders-form-stack">
+    {% include "site/admin/partials/_orders_return_fields.html" %}
+    {% with availability_form_id='order-availability-form-' ~ order.id %}
+    {% include "site/admin/partials/_order_availability_stock_check.html" %}
+    {% endwith %}
+    <div class="orders-field">
+      <label class="orders-field__label" for="order-availability-comment-{{ order.id }}">Комментарий</label>
+      <textarea id="order-availability-comment-{{ order.id }}" name="event_message" class="orders-field__textarea" rows="2" placeholder="Комментарий в историю заказа"></textarea>
+    </div>
+    <div class="orders-form-row orders-form-row--between">
+      {{ render_rail_notify('availability', rail_steps, order_notify_channels) }}
+      <button type="submit" name="action" value="save_check" class="admin-btn-pill">Подтвердить наличие</button>
+    </div>
+  </form>
+  {% elif order.status in ('created', 'processing') and order.availability_confirmation_status == 'unavailable' %}
+  {% with show_availability_decisions=false %}
+  {% include "site/admin/partials/_order_availability_stock_check.html" %}
+  {% endwith %}
+  {% else %}
+  <p class="orders-field__hint">Этап завершён. Результат сохранён в истории заказа.</p>
+  {% endif %}
+
+{% elif rail_step_id == 'composition' %}
+  {% include "site/admin/partials/_order_action_rail_step_composition.html" %}
+
+{% elif rail_step_id == 'payment' %}
+  {% if has_late_payment_after_auto_cancel %}
+  <div class="orders-alert orders-alert--danger" role="alert">
+    Оплата получена после автоматической отмены заказа. Проверьте возможность выполнения.
+  </div>
+  {% endif %}
+  {% if order.payment_state == 'paid' %}
+  <div class="orders-payment-banner orders-payment-banner--paid" role="status">
+    {{ admin_icon("check", "ico orders-payment-banner__icon") }}
+    <span>Оплата подтверждена{% if order.payment_paid_at_short_display %} · {{ order.payment_paid_at_short_display }}{% endif %}.</span>
+  </div>
+  {% elif order.payment_state in ('waiting', 'initializing', 'not_started') %}
+  <div class="orders-payment-banner orders-payment-banner--waiting" role="status">
+    {{ admin_icon("alert", "ico orders-payment-banner__icon") }}
+    <span>Заказ не оплачен.{% if order.payment_due_at_display %} Оплатить до {{ order.payment_due_at_display }}.{% endif %}</span>
+  </div>
+  {% elif order.payment_state in ('failed', 'exhausted') %}
+  <div class="orders-payment-banner orders-payment-banner--failed" role="status">
+    {{ admin_icon("x", "ico orders-payment-banner__icon") }}
+    <span>Все попытки оплаты завершились ошибкой.</span>
+  </div>
+  {% elif order.payment_state == 'late_paid_after_cancel' %}
+  <div class="orders-payment-banner orders-payment-banner--late" role="status">
+    {{ admin_icon("alert", "ico orders-payment-banner__icon") }}
+    <span>Оплата получена после отмены заказа.</span>
+  </div>
+  {% endif %}
+  {% if rail_step_mode == 'now' %}
+  <div class="orders-payment-summary">
+    {% if order.payment_allowed is defined and not order.payment_allowed %}
+    <div class="orders-payment-summary__blocked muted small">Оплата заблокирована</div>
+    {% endif %}
+    {% if payment_attempts_count is defined and payment_attempts_limit is defined %}
+    <div class="orders-payment-summary__date muted small">Попытки оплаты: {{ payment_attempts_count }} из {{ payment_attempts_limit }}</div>
+    {% endif %}
+    {% if order.cancellation_reason == 'payment_timeout' %}
+    <div class="orders-payment-summary__blocked muted small">Причина отмены: срок оплаты истёк</div>
+    {% elif order.cancellation_reason == 'customer_request' %}
+    <div class="orders-payment-summary__blocked muted small">Причина отмены: отменён клиентом</div>
+    {% endif %}
+  </div>
+  {{ render_payment_tech_block(payment_tech) }}
+  {{ render_payment_attempts_list(payment_attempt_rows or [], order.id, has_duplicate_payment or false) }}
+  {% endif %}
+
+{% elif rail_step_id == 'assembly' %}
+  {% include "site/admin/partials/_order_supplier_orders_packing.html" %}
+  {% set packing_usable = (packing.get('can_create') if packing else false) or ((supplier_orders or [])|length > 0) %}
+  {% if start_assembling_allowed and not packing_usable %}
+  <form method="post" action="/internal/admin/orders/{{ order.id }}/start-assembling" class="orders-form-stack">
+    {% include "site/admin/partials/_orders_return_fields.html" %}
+    <div class="orders-action-callout orders-action-callout--ready">{{ admin_icon("check", "ico ico--sm") }} Клиент оплатил заказ. Оформите и оплатите его на сайте поставщика.</div>
+    <div class="orders-field">
+      <label class="orders-field__label" for="supplier-order-id-{{ order.id }}">Номер заказа у поставщика</label>
+      <input id="supplier-order-id-{{ order.id }}" name="supplier_order_id" class="orders-field__input" required maxlength="128" placeholder="Номер заказа" />
+    </div>
+    <div class="orders-field">
+      <label class="orders-field__label" for="order-assembling-comment-{{ order.id }}">Внутренний комментарий</label>
+      <textarea id="order-assembling-comment-{{ order.id }}" name="event_message" class="orders-field__textarea" rows="2" placeholder="Комментарий к заказу у поставщика"></textarea>
+    </div>
+    <div class="orders-form-row orders-form-row--between orders-form-row--notify-footer">
+      {{ render_rail_notify('assembly', rail_steps, order_notify_channels) }}
+      <button type="submit" class="admin-btn-pill">Передать в сборку</button>
+    </div>
+  </form>
+  {% elif order.supplier_order_id and not (supplier_orders or []) %}
+  <dl class="order-readonly-kv"><div><dt>Номер у поставщика</dt><dd class="mono">{{ order.supplier_order_id }}</dd></div><div><dt>Состояние</dt><dd>Оформлен и передан в сборку</dd></div></dl>
+  {% endif %}
+
+{% elif rail_step_id == 'delivery' %}
+  {% if rail_step_mode == 'queue' and not order.supplier_order_id and not (admin_shipments or []) and not (supplier_orders or []) %}
+  <p class="orders-field__hint">Доставка в процессе или ожидает трек.</p>
+  {% else %}
+  {% include "site/admin/partials/_order_action_rail_step_delivery.html" %}
+  {% endif %}
+{% endif %}

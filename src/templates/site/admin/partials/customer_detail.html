@@ -1,0 +1,506 @@
+{% if not user %}
+<div class="customers-empty">
+  {{ admin_icon("customers", "ico customers-empty__icon") }}
+  <p>{{ error or 'Пользователь не найден' }}</p>
+</div>
+{% else %}
+{% set delivery = delivery_profile if delivery_profile is defined else none %}
+{% set invited_users = referral.invited_users if referral.invited_users is defined else [] %}
+<div class="customers-detail-layout">
+  <div class="customers-detail-main">
+
+    <section class="ac-card customers-detail-view-card">
+      <details class="customers-detail-view-section" open>
+        <summary class="customers-detail-view-section__head customers-detail-view-section__summary">
+          <h2 class="ac-card__title">Профиль</h2>
+          <span class="customers-detail-view-section__head-end">
+            <span class="customers-detail-card__chevron" aria-hidden="true"></span>
+          </span>
+        </summary>
+        <div class="customers-detail-view-section__body">
+        <div class="customers-kv-grid customers-kv-grid--3">
+          <div class="customers-kv">
+            <span class="customers-field-label">Имя</span>
+            <span class="customers-field-value">{{ user.name or '—' }}</span>
+          </div>
+          <div class="customers-kv">
+            <span class="customers-field-label">Email (уведомления)</span>
+            <span class="customers-field-value">{{ user.email or '—' }}</span>
+          </div>
+          <div class="customers-kv">
+            <span class="customers-field-label">Телефон (звонок / код в TG)</span>
+            <span class="customers-field-value mono">{{ login_phone_e164 or '—' }}</span>
+          </div>
+          <div class="customers-kv">
+            <span class="customers-field-label">Telegram (Mini App)</span>
+            <span class="customers-field-value">{% if telegram_username %}@{{ telegram_username }}{% else %}—{% endif %}</span>
+          </div>
+          <div class="customers-kv">
+            <span class="customers-field-label">Роль</span>
+            <span class="customers-field-value">
+              <span class="customers-pill customers-pill--role-{{ user.role }}">{{ user_role_labels.get(user.role, user.role) }}</span>
+            </span>
+          </div>
+          <div class="customers-kv">
+            <span class="customers-field-label">Статус аккаунта</span>
+            <span class="customers-field-value">
+              {% if user.is_active %}
+              <span class="customers-pill customers-pill--order-completed">Активен</span>
+              {% else %}
+              <span class="customers-pill customers-pill--order-cancelled">Деактивирован</span>
+              {% endif %}
+            </span>
+          </div>
+          <div class="customers-kv">
+            <span class="customers-field-label">ID</span>
+            <span class="customers-field-value mono">#{{ user.id }}</span>
+          </div>
+          <div class="customers-kv">
+            <span class="customers-field-label">Telegram ID</span>
+            <span class="customers-field-value mono">{{ telegram_id or '—' }}</span>
+          </div>
+          <div class="customers-kv">
+            <span class="customers-field-label">Зарегистрирован</span>
+            <span class="customers-field-value">{{ format_datetime_msk(user.created_at) if user.created_at else '—' }}</span>
+          </div>
+        </div>
+        </div>
+      </details>
+
+      <details class="customers-detail-view-section customers-referral-block">
+        <summary class="customers-detail-view-section__head customers-detail-view-section__summary">
+          <h2 class="ac-card__title">Реферал</h2>
+          <span class="customers-detail-view-section__head-end">
+          {% if user.role == 'buyer' %}
+          <span class="customers-pill customers-pill--warn">{{ referral.commission_percent }}%
+            {% if referral.commission_percent_source == 'individual' %}(инд.){% elif referral.commission_percent_source == 'disabled' %}(откл.){% endif %}
+          </span>
+          {% endif %}
+            <span class="customers-detail-card__chevron" aria-hidden="true"></span>
+          </span>
+        </summary>
+        <div class="customers-detail-view-section__body">
+          <div class="customers-kv-grid">
+            <div class="customers-kv">
+              <span class="customers-field-label">Реф. код</span>
+              <span class="customers-field-value mono">{{ user.referral_code or referral.referral_code or '—' }}</span>
+            </div>
+            {% if referral.referral_link %}
+            <div class="customers-kv customers-kv--full">
+              <span class="customers-field-label">Реф. ссылка</span>
+              <div class="customers-copy-row">
+                <span class="customers-copy-row__text mono" id="customer-ref-link-{{ user.id }}">{{ referral.referral_link }}</span>
+                <button type="button" class="customers-copy-btn" data-copy-target="customer-ref-link-{{ user.id }}">
+                  {{ admin_icon("copy", "ico ico--sm") }}
+                  <span data-copy-label>Копировать</span>
+                </button>
+              </div>
+            </div>
+            {% endif %}
+          </div>
+
+          <div class="customers-referral-links">
+            <div class="customers-referral-links__section">
+              <h3 class="customers-referral-links__title">Кто привёл этого клиента</h3>
+              {% if referral.referrer %}
+              <a href="/internal/admin/customers?id={{ referral.referrer.id }}" class="customers-referral-links__item">
+                <span class="customers-referral-links__name">{{ referral.referrer.name or ('Клиент #' ~ referral.referrer.id) }}</span>
+                <span class="customers-referral-links__meta mono">#{{ referral.referrer.id }}</span>
+              </a>
+              {% elif user.referrer_id %}
+              <span class="customers-referral-links__empty mono">#{{ user.referrer_id }} (профиль недоступен)</span>
+              {% else %}
+              <span class="customers-referral-links__empty">Не привязан</span>
+              {% endif %}
+            </div>
+            <div class="customers-referral-links__section">
+              <h3 class="customers-referral-links__title">
+                Кого привёл этот клиент
+                {% if referral.invited_count %}<span class="customers-referral-links__count">({{ referral.invited_count }})</span>{% endif %}
+              </h3>
+              {% if invited_users %}
+              <ul class="customers-referral-links__list">
+                {% for invitee in invited_users %}
+                <li>
+                  <a href="/internal/admin/customers?id={{ invitee.id }}" class="customers-referral-links__item">
+                    <span class="customers-referral-links__name">{{ invitee.name or ('Клиент #' ~ invitee.id) }}</span>
+                    <span class="customers-referral-links__meta">
+                      <span class="mono">#{{ invitee.id }}</span>
+                      {% if invitee.created_at %}
+                      · {{ format_datetime_msk(invitee.created_at, with_tz_label=False) }}
+                      {% endif %}
+                    </span>
+                  </a>
+                </li>
+                {% endfor %}
+              </ul>
+              {% if referral.invited_count > invited_users|length %}
+              <p class="customers-hint m-0">Показано {{ invited_users|length }} из {{ referral.invited_count }}</p>
+              {% endif %}
+              {% else %}
+              <span class="customers-referral-links__empty">Нет приглашённых</span>
+              {% endif %}
+            </div>
+          </div>
+
+          {% if user.role == 'buyer' %}
+          {% if referral.recent_earnings %}
+          <div class="customers-earnings">
+            <p class="customers-earnings__title">Начисления</p>
+            <div class="customers-earnings-table-wrap">
+              <table class="customers-earnings-table">
+                <thead>
+                  <tr>
+                    <th>Заказ</th>
+                    <th>Сумма</th>
+                    <th>%</th>
+                    <th>Начислено</th>
+                    <th>Дата</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for row in referral.recent_earnings %}
+                  <tr>
+                    <td><a href="/internal/admin/orders?id={{ row.order_id }}" class="customers-link">#{{ row.order_id }}</a></td>
+                    <td>{{ row.order_amount_rub }} ₽</td>
+                    <td>{{ row.commission_percent }}%</td>
+                    <td class="customers-earnings-table__amount">{{ row.commission_amount_rub }} ₽</td>
+                    <td class="customers-earnings-table__date">{{ format_datetime_msk(row.created_at, with_tz_label=False) }}</td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+                <tfoot>
+                  <tr>
+                    <td colspan="3">Итого</td>
+                    <td class="customers-earnings-table__amount">{{ referral.total_earned_rub or 0 }} ₽</td>
+                    <td></td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </div>
+          {% else %}
+          <p class="customers-note">Начислений пока нет</p>
+          {% endif %}
+          {% else %}
+          <div class="customers-ref-banner customers-ref-banner--muted">
+            {{ admin_icon("gift", "ico ico--sm") }}
+            <div>
+              <p class="customers-ref-banner__title">Реферальная программа недоступна</p>
+              <p class="customers-ref-banner__text">Статистика начислений отображается только для покупателей.</p>
+            </div>
+          </div>
+          {% endif %}
+        </div>
+      </details>
+
+      <details class="customers-detail-view-section">
+        <summary class="customers-detail-view-section__head customers-detail-view-section__summary">
+          <h2 class="ac-card__title">Доставка</h2>
+          <span class="customers-detail-view-section__head-end">
+            <span class="ac-card__meta">Сохранённый адрес</span>
+            <span class="customers-detail-card__chevron" aria-hidden="true"></span>
+          </span>
+        </summary>
+        <div class="customers-detail-view-section__body">
+        {% if delivery %}
+        <div class="customers-kv-grid">
+          <div class="customers-kv">
+            <span class="customers-field-label">Получатель</span>
+            <span class="customers-field-value">{{ delivery.last_name }} {{ delivery.first_name }}</span>
+            <span class="customers-field-line mono">{{ delivery.phone }}</span>
+          </div>
+          <div class="customers-kv">
+            <span class="customers-field-label">Адрес</span>
+            <span class="customers-field-value">{{ delivery.city }}, {{ delivery.street }}, {{ delivery.house }}{% if delivery.apartment %}, кв. {{ delivery.apartment }}{% endif %}</span>
+            <span class="customers-field-line mono">{{ delivery.postal_code }}</span>
+          </div>
+        </div>
+        {% else %}
+        <p class="customers-hint m-0">Профиль доставки не заполнен</p>
+        {% endif %}
+        </div>
+      </details>
+
+      <details class="customers-detail-view-section">
+        <summary class="customers-detail-view-section__head customers-detail-view-section__summary">
+          <h2 class="ac-card__title">Последние заказы</h2>
+          <span class="customers-detail-view-section__head-end">
+            <span class="ac-card__meta">Итого: {{ orders_count }}</span>
+            <span class="customers-detail-card__chevron" aria-hidden="true"></span>
+          </span>
+        </summary>
+        <div class="customers-detail-view-section__body customers-detail-view-section__body--flush">
+        {% if orders %}
+        {% for order in orders %}
+        <div class="customers-order-row">
+          <span class="customers-order-row__dot st-dot st-dot--{{ order.status }}"></span>
+          <a href="/internal/admin/orders?id={{ order.id }}" class="customers-link customers-order-row__id">#{{ order.id }}</a>
+          <span class="customers-order-row__date">{{ format_datetime_msk(order.created_at, with_tz_label=False) if order.created_at else '—' }}</span>
+          <span class="customers-pill customers-pill--order-{{ order.status }}">{{ status_labels.get(order.status, order.status) }}</span>
+          <span class="customers-order-row__sum">{{ order.total_amount }} ₽</span>
+        </div>
+        {% endfor %}
+        {% else %}
+        <div class="customers-empty customers-empty--compact">
+          {{ admin_icon("box", "ico customers-empty__icon") }}
+          <p>Заказов нет</p>
+        </div>
+        {% endif %}
+        </div>
+      </details>
+
+      <details class="customers-detail-view-section">
+        <summary class="customers-detail-view-section__head customers-detail-view-section__summary">
+          <h2 class="ac-card__title">Корзина</h2>
+          <span class="customers-detail-view-section__head-end">
+          {% if cart and cart.items %}
+          <span class="ac-card__meta">{{ cart.items | length }} позиций</span>
+          {% endif %}
+            <span class="customers-detail-card__chevron" aria-hidden="true"></span>
+          </span>
+        </summary>
+        <div class="customers-detail-view-section__body customers-detail-view-section__body--flush">
+        {% if cart and cart.items %}
+        {% for item in cart.items %}
+        <div class="customers-cart-row">
+          <div>
+            <span class="customers-cart-row__name">{{ item.product_title }}</span>
+            <span class="customers-cart-row__qty">× {{ item.quantity }}</span>
+          </div>
+          <span class="customers-cart-row__sum">{{ item.price_snapshot }} ₽</span>
+        </div>
+        {% endfor %}
+        <div class="customers-cart-total">
+          <span>Итого</span>
+          <span class="customers-cart-total__sum">{{ cart.total_amount }} ₽</span>
+        </div>
+        {% else %}
+        <div class="customers-empty customers-empty--compact">
+          {{ admin_icon("orders", "ico customers-empty__icon") }}
+          <p>Корзина пуста</p>
+        </div>
+        {% endif %}
+        </div>
+      </details>
+    </section>
+  </div>
+
+  <aside class="customers-detail-side">
+
+    <details class="ac-card customers-detail-card">
+      <summary class="ac-card__head customers-detail-card__summary">
+        <h2 class="ac-card__title">Редактировать профиль</h2>
+        <span class="customers-detail-card__head-end">
+          <span class="customers-detail-card__chevron" aria-hidden="true"></span>
+        </span>
+      </summary>
+      <div class="ac-card__body">
+        <form id="customer-profile-form-{{ user.id }}" method="post" action="/internal/admin/customers/{{ user.id }}/update?id={{ user.id }}" class="customers-create__grid">
+          <p class="customers-form-section-title customers-field--span2">Профиль</p>
+          <div class="customers-field customers-field--span2">
+            <label class="customers-field__label" for="customer-name-{{ user.id }}">Имя</label>
+            <input id="customer-name-{{ user.id }}" name="name" class="customers-field__input" value="{{ user.name or '' }}" />
+          </div>
+          <div class="customers-field customers-field--span2">
+            <label class="customers-field__label" for="customer-role-{{ user.id }}">Роль</label>
+            <select id="customer-role-{{ user.id }}" name="role" class="customers-field__input customers-field__select">
+              {% for code, label in user_role_labels.items() %}
+              <option value="{{ code }}" {% if user.role == code %}selected{% endif %}>{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          {% if user.role != 'admin' %}
+          <div class="customers-deactivate-block customers-field customers-field--span2">
+            <label class="check">
+              <input type="checkbox" name="is_deactivated" value="true" {% if not user.is_active %}checked{% endif %} />
+              Деактивирован
+            </label>
+            <p class="customers-hint customers-deactivate-hint m-0">Вход на сайте и в Telegram будет заблокирован. Заказы сохранятся.</p>
+          </div>
+          {% endif %}
+
+          <p class="customers-form-section-title customers-field--span2">Способы входа</p>
+          <p class="customers-form-section-hint customers-field--span2">
+            Сменить тел./TG — ввести данные и сохранить. Сбросить — очистить поле (нужен хотя бы один способ).
+          </p>
+          <div class="customers-field customers-field--span2">
+            <label class="customers-field__label" for="customer-phone-{{ user.id }}">Телефон (звонок / код в TG)</label>
+            <input id="customer-phone-{{ user.id }}" name="login_phone" class="customers-field__input" type="tel" value="{{ login_phone_e164 or '' }}" placeholder="Не привязан" autocomplete="off" />
+          </div>
+          <div class="customers-field customers-field--span2">
+            <label class="customers-field__label" for="customer-tg-id-{{ user.id }}">Telegram ID (Mini App)</label>
+            <input id="customer-tg-id-{{ user.id }}" name="telegram_id" class="customers-field__input" inputmode="numeric" value="{{ telegram_id or '' }}" placeholder="Не привязан" autocomplete="off" />
+          </div>
+          <div class="customers-field customers-field--span2">
+            <label class="customers-field__label" for="customer-tg-{{ user.id }}">Telegram username</label>
+            <input id="customer-tg-{{ user.id }}" name="telegram_username" class="customers-field__input" value="{{ telegram_username or '' }}" placeholder="@username" />
+          </div>
+
+          <p class="customers-form-section-title customers-field--span2">Уведомления</p>
+          <p class="customers-form-section-hint customers-field--span2">
+            Email для писем о заказах. На вход не влияет — можно очистить в любой момент.
+          </p>
+          <div class="customers-field customers-field--span2">
+            <label class="customers-field__label" for="customer-email-{{ user.id }}">Email</label>
+            <input id="customer-email-{{ user.id }}" name="email" class="customers-field__input" type="email" value="{{ user.email or '' }}" placeholder="Не указан" />
+          </div>
+        </form>
+        <div class="customers-detail-actions customers-detail-actions--end">
+          <button type="submit" form="customer-profile-form-{{ user.id }}" class="admin-btn-pill admin-btn-pill--sm">Сохранить профиль</button>
+        </div>
+      </div>
+    </details>
+
+    <details class="ac-card customers-detail-card">
+      <summary class="ac-card__head customers-detail-card__summary">
+        <h2 class="ac-card__title">Редактировать доставку</h2>
+        <span class="customers-detail-card__head-end">
+          <span class="customers-detail-card__chevron" aria-hidden="true"></span>
+        </span>
+      </summary>
+      <div class="ac-card__body">
+        <form id="customer-delivery-form-{{ user.id }}" method="post" action="/internal/admin/customers/{{ user.id }}/delivery?id={{ user.id }}" class="customers-create__grid">
+          <div class="customers-field">
+            <label class="customers-field__label" for="delivery-last-name-{{ user.id }}">Фамилия</label>
+            <input id="delivery-last-name-{{ user.id }}" name="last_name" class="customers-field__input" value="{{ delivery.last_name if delivery else '' }}" required />
+          </div>
+          <div class="customers-field">
+            <label class="customers-field__label" for="delivery-first-name-{{ user.id }}">Имя</label>
+            <input id="delivery-first-name-{{ user.id }}" name="first_name" class="customers-field__input" value="{{ delivery.first_name if delivery else '' }}" required />
+          </div>
+          <div class="customers-field customers-field--span2">
+            <label class="customers-field__label" for="delivery-street-{{ user.id }}">Улица</label>
+            <input id="delivery-street-{{ user.id }}" name="street" class="customers-field__input" value="{{ delivery.street if delivery else '' }}" required />
+          </div>
+          <div class="customers-field">
+            <label class="customers-field__label" for="delivery-house-{{ user.id }}">Дом</label>
+            <input id="delivery-house-{{ user.id }}" name="house" class="customers-field__input" value="{{ delivery.house if delivery else '' }}" required />
+          </div>
+          <div class="customers-field">
+            <label class="customers-field__label" for="delivery-apartment-{{ user.id }}">Квартира</label>
+            <input id="delivery-apartment-{{ user.id }}" name="apartment" class="customers-field__input" value="{{ delivery.apartment if delivery and delivery.apartment else '' }}" />
+          </div>
+          <div class="customers-field">
+            <label class="customers-field__label" for="delivery-city-{{ user.id }}">Город</label>
+            <input id="delivery-city-{{ user.id }}" name="city" class="customers-field__input" value="{{ delivery.city if delivery else '' }}" required />
+          </div>
+          <div class="customers-field">
+            <label class="customers-field__label" for="delivery-postal-{{ user.id }}">Индекс</label>
+            <input id="delivery-postal-{{ user.id }}" name="postal_code" class="customers-field__input" value="{{ delivery.postal_code if delivery else '' }}" required />
+          </div>
+          <div class="customers-field customers-field--span2">
+            <label class="customers-field__label" for="delivery-phone-{{ user.id }}">Телефон доставки</label>
+            <input id="delivery-phone-{{ user.id }}" name="phone" class="customers-field__input" value="{{ delivery.phone if delivery else '' }}" required />
+          </div>
+        </form>
+        <div class="customers-detail-actions">
+          {% if delivery %}
+          <form method="post" action="/internal/admin/customers/{{ user.id }}/delivery/reset?id={{ user.id }}" onsubmit="return confirm('Сбросить сохранённые данные доставки?');">
+            <button type="submit" class="customers-btn-danger">Сбросить данные</button>
+          </form>
+          {% endif %}
+          <button type="submit" form="customer-delivery-form-{{ user.id }}" class="admin-btn-pill admin-btn-pill--sm customers-detail-actions__save">Сохранить доставку</button>
+        </div>
+      </div>
+    </details>
+
+    {% if user.role == 'buyer' %}
+    <details class="ac-card customers-detail-card">
+      <summary class="ac-card__head customers-detail-card__summary">
+        <h2 class="ac-card__title">Редактировать реферала</h2>
+        <span class="customers-detail-card__head-end">
+          <span class="customers-detail-card__chevron" aria-hidden="true"></span>
+        </span>
+      </summary>
+      <div class="ac-card__body">
+        <div class="customers-referrer-block">
+          <h3 class="customers-referrer-block__title">Индивидуальный %</h3>
+          <p class="customers-referrer-block__hint">Пусто — глобальный %. <span class="mono">0</span> — отключить новые начисления.</p>
+          <form method="post" action="/internal/admin/customers/{{ user.id }}/referral-commission?id={{ user.id }}" class="customers-referrer-form">
+            <input id="customer-referral-commission-{{ user.id }}" name="referral_commission_percent" class="customers-field__input" value="{% if user.referral_commission_percent is not none %}{{ user.referral_commission_percent }}{% endif %}" placeholder="глобальный" inputmode="decimal" autocomplete="off" />
+            <button type="submit" class="admin-btn-pill admin-btn-pill--sm">Сохранить</button>
+            {% if user.referral_commission_percent is not none %}
+            <button type="submit" name="clear_referral_commission" value="1" class="admin-btn-pill admin-btn-pill--sm admin-btn-pill--ghost">Сбросить</button>
+            {% endif %}
+          </form>
+        </div>
+        <div class="customers-referrer-block">
+          <h3 class="customers-referrer-block__title">Referral alias</h3>
+          <p class="customers-referrer-block__hint">Короткая ссылка <span class="mono">/ref/alias</span>.</p>
+          <form method="post" action="/internal/admin/customers/{{ user.id }}/referral-alias?id={{ user.id }}" class="customers-referrer-form">
+            <input id="customer-referral-alias-{{ user.id }}" name="referral_alias" class="customers-field__input" value="{{ referral.referral_alias or '' }}" placeholder="martin" autocomplete="off" spellcheck="false" />
+            <button type="submit" class="admin-btn-pill admin-btn-pill--sm">Сохранить</button>
+            {% if referral.referral_alias %}
+            <button type="submit" name="clear_alias" value="1" class="admin-btn-pill admin-btn-pill--sm admin-btn-pill--ghost">Очистить</button>
+            {% endif %}
+          </form>
+        </div>
+        <div class="customers-referrer-block">
+          <h3 class="customers-referrer-block__title">Сменить реферала</h3>
+          <p class="customers-referrer-block__hint">Смена реферала — для будущих заказов. Прошлые начисления не меняются.</p>
+          {% if referral.referral_attribution_locked %}
+          <p class="customers-note">Автопривязка по cookie заблокирована администратором.</p>
+          {% endif %}
+          <form method="post" action="/internal/admin/customers/{{ user.id }}/referrer?id={{ user.id }}" class="customers-referrer-form customers-referrer-form--stacked">
+            <select id="customer-referrer-{{ user.id }}" name="referrer_id" class="customers-field__input customers-field__select">
+              <option value="" {% if not user.referrer_id %}selected{% endif %}>— не привязан (заблокировать auto) —</option>
+              {% for partner in referral_partners %}
+              <option value="{{ partner.id }}" {% if user.referrer_id == partner.id %}selected{% endif %}>
+                {{ partner.name or partner.email or ('#' ~ partner.id) }}
+              </option>
+              {% endfor %}
+            </select>
+            <input id="customer-referrer-reason-{{ user.id }}" name="referrer_change_reason" class="customers-field__input" placeholder="Причина изменения" required autocomplete="off" />
+            <button type="submit" class="admin-btn-pill admin-btn-pill--sm">Сохранить</button>
+          </form>
+          {% if not referral_partners %}
+          <p class="customers-note">Нет активных покупателей для выбора реферера.</p>
+          {% endif %}
+        </div>
+        {% if referral.referral_audit %}
+        <div class="customers-referrer-audit">
+          <p class="customers-earnings__title">История смен реферера</p>
+          <div class="customers-referrer-audit__list">
+            {% for row in referral.referral_audit %}
+            <article class="customers-referrer-audit__item">
+              <div class="customers-referrer-audit__change mono">
+                <span>{% if row.old_referrer_id %}#{{ row.old_referrer_id }}{% else %}—{% endif %}</span>
+                <span class="customers-referrer-audit__arrow" aria-hidden="true">→</span>
+                <span>{% if row.new_referrer_id %}#{{ row.new_referrer_id }}{% else %}—{% endif %}</span>
+              </div>
+              <p class="customers-referrer-audit__reason">{{ row.reason }}</p>
+              <p class="customers-referrer-audit__meta">
+                Lock: {{ 'да' if row.new_attribution_locked else 'нет' }}
+                · {{ format_datetime_msk(row.created_at, with_tz_label=False) }}
+              </p>
+            </article>
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+      </div>
+    </details>
+    {% endif %}
+
+    <details class="ac-card customers-detail-card">
+      <summary class="ac-card__head customers-detail-card__summary">
+        <h2 class="ac-card__title">Опасная зона</h2>
+        <span class="customers-detail-card__chevron" aria-hidden="true"></span>
+      </summary>
+      <div class="ac-card__body">
+        {% if can_delete_customer %}
+        <form method="post" action="/internal/admin/customers/{{ user.id }}/delete" onsubmit="return confirm('Удалить клиента #{{ user.id }}? Будут удалены все заказы, обращения в поддержку и связанные данные.');">
+          <button type="submit" class="customers-btn-danger">
+            {{ admin_icon("trash", "ico ico--sm") }}
+            Удалить клиента
+          </button>
+        </form>
+        {% else %}
+        <p class="customers-hint m-0">Нельзя удалить администратора.</p>
+        {% endif %}
+      </div>
+    </details>
+  </aside>
+</div>
+{% endif %}

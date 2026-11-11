@@ -1,0 +1,79 @@
+[project]
+name = "shopstore"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "aiofiles>=25.1.0",
+    "aiohttp>=3.13.5",
+    "pydantic-settings>=2.13.1",
+    "rq>=2.8.0",
+    "redis>=7.4.0",
+    "stealth-requests>=2.0.6",
+]
+
+[project.optional-dependencies]
+web = [
+    "fastapi>=0.136.0",
+    "uvicorn>=0.44.0",
+    "python-multipart>=0.0.20",
+    "jinja2>=3.1.6",
+    "sqlalchemy>=2.0.49",
+    "asyncpg>=0.31.0",
+    "psycopg2-binary>=2.9.11",
+    "alembic>=1.18.4",
+    "aiogram>=3.22.0",
+    "aiohttp-socks>=0.10.1",
+    "deep-translator>=1.11.4",
+    "pyjwt>=2.12.1",
+    "cryptography>=44.0.0",
+    "httpx>=0.28.0",
+    "pillow>=12.3.0",
+    "boto3>=1.36.0",
+]
+scraper = [
+    "playwright>=1.54.0",
+    "cloudscraper>=1.2.71",
+]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.15.11",
+    "types-redis>=4.6.0.20241004",
+    "types-requests>=2.32.0.20241016",
+    "pytest>=8.3.0",
+    "pytest-asyncio>=0.24.0",
+    "greenlet>=3.1.0",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-m 'not e2e'"
+markers = [
+    "e2e: локальный E2E против запущенного API (localhost:8000)",
+    "integration: integration-тесты с реальной БД",
+]
+
+[tool.ruff]
+# Установить длину строки
+line-length = 88
+
+[tool.ruff.lint]
+# Включить правила: F (Pyflakes), E (pycodestyle errors), W (warnings), I (isort)
+select = ["E", "F", "I", "W"]
+ignore = []
+
+[tool.ruff.format]
+quote-style = "double"
+
+[tool.mypy]
+disable_error_code = ["import-untyped"]
+exclude = ["^alembic/"]
+
+[tool.flake8]
+max-line-length = 88
+extend-ignore = ["E203"]

@@ -1,0 +1,30 @@
+{% if error is string and error %}
+<div class="admin-flash admin-flash-error" data-admin-flash-dismiss>{{ error }}</div>
+{% endif %}
+{% if success is string and success %}
+<div class="admin-flash admin-flash-success" data-admin-flash-dismiss>{{ success }}</div>
+{% endif %}
+{% if (error is string and error) or (success is string and success) %}
+<script>
+  (function () {
+    const url = new URL(window.location.href);
+    let cleaned = false;
+    if (url.searchParams.has("success")) {
+      url.searchParams.delete("success");
+      cleaned = true;
+    }
+    if (url.searchParams.has("error")) {
+      url.searchParams.delete("error");
+      cleaned = true;
+    }
+    if (cleaned) {
+      const qs = url.searchParams.toString();
+      history.replaceState({}, "", url.pathname + (qs ? "?" + qs : "") + url.hash);
+    }
+    document.querySelectorAll("[data-admin-flash-dismiss]").forEach((el) => {
+      window.setTimeout(() => el.classList.add("admin-flash--hide"), 3500);
+      window.setTimeout(() => el.remove(), 4000);
+    });
+  })();
+</script>
+{% endif %}

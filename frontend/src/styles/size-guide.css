@@ -1,0 +1,40 @@
+.storefront-size-guide.storefront-legal-doc {
+  padding: 0 0 1rem;
+}
+
+.storefront-size-guide .legal-doc-lead {
+  margin-bottom: 1rem;
+}
+
+.storefront-size-guide .size-guide-section + .size-guide-section {
+  margin-top: 1.5rem;
+}
+
+.storefront-size-guide h2 {
+  margin: 0 0 0.75rem;
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--sp-text-primary);
+}
+
+@media (max-width: 640px) {
+  .storefront-size-guide .legal-doc-lead {
+    font-size: 0.85rem;
+    margin-bottom: 0.85rem;
+  }
+
+  .storefront-size-guide h2 {
+    font-size: 0.92rem;
+  }
+
+  .storefront-size-guide .legal-doc-table {
+    font-size: 0.75rem;
+    min-width: 280px;
+  }
+
+  .storefront-size-guide .legal-doc-table th,
+  .storefront-size-guide .legal-doc-table td {
+    padding: 0.4rem 0.45rem;
+  }
+}

@@ -1,0 +1,19 @@
+<details class="commission-history">
+  <summary
+    class="commission-history__trigger btn btn--sm btn--icon btn--ghost"
+    title="История курса"
+    aria-label="История курса EUR"
+  >
+    {{ admin_icon('search', 'ico--sm') }}
+  </summary>
+  <div class="commission-history__panel commission-history__panel--eur" role="dialog" aria-label="История изменений курса EUR">
+    <p class="commission-history__title">Курс EUR (7 дней)</p>
+    {% if rows %}
+    <ul class="commission-history__list" id="eur-rate-history-rows">
+      {% include "site/admin/partials/eur_rate_history_rows.html" %}
+    </ul>
+    {% else %}
+    <p class="commission-history__empty muted">История пуста</p>
+    {% endif %}
+  </div>
+</details>

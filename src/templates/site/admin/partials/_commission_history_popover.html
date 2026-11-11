@@ -1,0 +1,24 @@
+<details class="commission-history">
+  <summary
+    class="commission-history__trigger btn btn--sm btn--icon btn--ghost"
+    title="История комиссии"
+    aria-label="История комиссии сервиса"
+  >
+    {{ admin_icon('search', 'ico--sm') }}
+  </summary>
+  <div class="commission-history__panel" role="dialog" aria-label="История изменений комиссии">
+    <p class="commission-history__title">Комиссия по дате оплаты (MSK)</p>
+    {% if commission_history %}
+    <ul class="commission-history__list">
+      {% for row in commission_history %}
+      <li class="commission-history__item">
+        <span class="commission-history__date">с {{ row.effective_from.strftime('%d.%m.%Y') }}</span>
+        <span class="commission-history__value mono">{{ row.commission_percent }}%</span>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="commission-history__empty muted">История пуста</p>
+    {% endif %}
+  </div>
+</details>

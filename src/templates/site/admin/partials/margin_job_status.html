@@ -1,0 +1,21 @@
+{% if job and job.status != 'succeeded' %}
+{% set percent = ((job.processed_count * 100) / job.total_count) | round | int if job.total_count else 0 %}
+{% set status_labels = {'queued': 'в очереди', 'running': 'выполняется', 'succeeded': 'выполнено', 'failed': 'ошибка', 'superseded': 'заменено'} %}
+<div
+  class="margin-job margin-job--{{ job.status }}"
+  {% if job.status in ('queued', 'running') %}
+  hx-get="/internal/admin/margins/jobs/{{ job.id }}"
+  hx-trigger="every 2s"
+  hx-swap="outerHTML"
+  {% endif %}
+>
+  <div class="margin-job__line">
+    <span class="margin-job__status">{{ status_labels.get(job.status, job.status) }}</span>
+    <span>{{ job.processed_count }} / {{ job.total_count }}</span>
+    {% if job.updated_count %}<span>обновлено {{ job.updated_count }}</span>{% endif %}
+    {% if job.error_count %}<span class="margin-job__errors">ошибок {{ job.error_count }}</span>{% endif %}
+  </div>
+  {% if job.error_message %}<div class="margin-job__errors">{{ job.error_message }}</div>{% endif %}
+  <div class="progress"><div class="progress__bar" style="width: {{ percent }}%"></div></div>
+</div>
+{% endif %}

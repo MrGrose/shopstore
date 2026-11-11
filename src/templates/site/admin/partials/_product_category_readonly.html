@@ -1,0 +1,33 @@
+<div class="products-detail-fields products-detail-fields--readonly">
+  <p class="products-detail-fields__hint muted">Источник: import pipeline. Редактирование в админке отключено.</p>
+  <div class="products-readonly-grid">
+    <div class="products-field">
+      <span class="products-field__label">category_l1</span>
+      <div class="products-readonly">{{ product.category_l1 or '—' }}</div>
+    </div>
+    <div class="products-field">
+      <span class="products-field__label">category_l2</span>
+      <div class="products-readonly">{% if product.category_l2 %}{{ translate_category_l2(product.category_l2) }} ({{ product.category_l2 }}){% else %}—{% endif %}</div>
+    </div>
+    <div class="products-field">
+      <span class="products-field__label">category_l3</span>
+      <div class="products-readonly">{{ product.category_l3 or '—' }}</div>
+    </div>
+    <div class="products-field">
+      <span class="products-field__label">sport_type</span>
+      <div class="products-readonly">{% if product.sport_type %}{{ translate_sport_type(product.sport_type) }} ({{ product.sport_type }}){% else %}—{% endif %}</div>
+    </div>
+    <div class="products-field">
+      <span class="products-field__label">trade_group</span>
+      <div class="products-readonly">{{ product.trade_group or '—' }}</div>
+    </div>
+    <div class="products-field">
+      <span class="products-field__label">gender</span>
+      <div class="products-readonly">{% if product.gender %}{{ translate_gender(product.gender) }} ({{ product.gender }}){% else %}—{% endif %}</div>
+    </div>
+    <div class="products-field">
+      <span class="products-field__label">pricing_category_key</span>
+      <div class="products-readonly mono">{{ product.pricing_category_key or '—' }}</div>
+    </div>
+  </div>
+</div>

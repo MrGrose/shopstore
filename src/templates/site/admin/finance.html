@@ -1,0 +1,89 @@
+{% extends "site/admin/base.html" %}
+{% from "site/admin/partials/_admin_ui_macros.html" import admin_page_head, admin_btn_pill %}
+{% block admin_page %}finance{% endblock %}
+{% block title %}Финансы — Admin{% endblock %}
+{% block content %}
+<div class="admin-page finance-page">
+{% call admin_page_head('Финансовый отчёт') %}{% endcall %}
+
+  {% if error %}
+  <div class="finance-flash flash flash--error" role="alert">
+    <span class="finance-flash__icon" aria-hidden="true">{{ admin_icon('alert', 'ico--sm') }}</span>
+    <div>
+      <p class="finance-flash__title">Неверный диапазон дат</p>
+      <p class="finance-flash__text">{{ error }}</p>
+    </div>
+  </div>
+  {% endif %}
+
+  {% if report.rows %}
+  {% include "site/admin/partials/finance_summary_cards.html" %}
+  {% endif %}
+
+  <section class="finance-toolbar card" aria-label="Фильтры отчёта">
+    <div class="card__body finance-toolbar__inner">
+      <div class="finance-toolbar__row">
+        <div class="finance-toolbar__left">
+          <div class="admin-filter-pills finance-presets" role="group" aria-label="Быстрый период">
+            {% for key, label, title in [
+              ("yesterday", "Вчера", "Продажи за вчерашний день"),
+              ("today", "Сегодня", "Продажи за сегодня"),
+              ("week", "Неделя", "Продажи за текущую неделю"),
+              ("month", "Месяц", "Продажи с начала месяца"),
+            ] %}
+            <a
+              class="admin-filter-pill{% if preset == key %} is-active{% endif %}"
+              href="/internal/admin/finance?{{ admin_finance_query(preset=key, group=group) }}"
+              title="{{ title }}"
+            >{{ label }}</a>
+            {% endfor %}
+          </div>
+
+          <span class="finance-toolbar__sep" aria-hidden="true"></span>
+
+          <form id="admin-finance-filters" class="finance-filters{% if not preset %} finance-filters--active{% endif %}" method="get" action="/internal/admin/finance">
+            <input type="hidden" name="group" value="{{ group }}" />
+            {% with picker_id="admin-finance-date-range", form_id="admin-finance-filters" %}
+            {% include "site/admin/partials/_date_range_picker.html" %}
+            {% endwith %}
+          </form>
+        </div>
+
+        <div class="finance-toolbar__right">
+          <div class="admin-filter-pills finance-groups" role="group" aria-label="Группировка строк">
+            {% for key, label in [("day", "День"), ("week", "Неделя"), ("month", "Месяц")] %}
+            <a
+              class="admin-filter-pill{% if group == key %} is-active{% endif %}"
+              href="/internal/admin/finance?{% if preset %}{{ admin_finance_query(preset=preset, group=key) }}{% else %}{{ admin_finance_query(date_from=date_from, date_to=date_to, group=key) }}{% endif %}"
+            >{{ label }}</a>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="finance-report-card card">
+    <div class="finance-report-card__head">
+      <h2 class="finance-report-card__title">{{ period_label }} · {{ bucket_label }}</h2>
+      {% if not error %}
+      <div class="finance-report-card__actions">
+        {{ admin_btn_pill('Скачать CSV', href='/internal/admin/finance/export.csv?' ~ admin_finance_query(preset=preset or none, date_from=date_from, date_to=date_to, group=group), size='sm') }}
+      </div>
+      {% endif %}
+    </div>
+
+    {% if report.rows %}
+    <div class="finance-report-card__table table-wrap">
+      {% include "site/admin/partials/finance_report_table.html" %}
+    </div>
+    {% else %}
+    <div class="finance-empty">
+      <span class="finance-empty__icon" aria-hidden="true">{{ admin_icon('box', 'ico--lg') }}</span>
+      <p class="finance-empty__title">Нет оплаченных заказов за выбранный период</p>
+      <p class="finance-empty__sub">Попробуйте выбрать другой диапазон дат.</p>
+    </div>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

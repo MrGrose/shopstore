@@ -1,0 +1,5 @@
+{% set orders_status_counts = orders_status_counts | default({}, true) %}
+<span id="admin-orders-status-count-all" class="admin-filter-pill__count" hx-swap-oob="true">{{ orders_status_counts.get('', 0) }}</span>
+{% for code, _label in status_labels.items() %}
+<span id="admin-orders-status-count-{{ code }}" class="admin-filter-pill__count" hx-swap-oob="true">{{ orders_status_counts.get(code, 0) }}</span>
+{% endfor %}

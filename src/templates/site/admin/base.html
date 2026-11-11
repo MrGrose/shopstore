@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#2997ff" />
+  <title>{% block title %}Shopstore Admin{% endblock %}</title>
+  {% block head_extra %}{% endblock %}
+  <link rel="stylesheet" href="/static/site/css/storefront.css?v=admin-site-3" />
+  <link rel="stylesheet" href="/static/site/css/admin.css?v=admin-design-180" />
+  <script src="https://unpkg.com/htmx.org@2.0.4"></script>
+  <script src="/static/site/js/admin.js?v=admin-design-40" defer></script>
+</head>
+<body class="admin-body" data-page="{% block admin_page %}{% endblock %}">
+  {% include "site/admin/partials/_nav.html" %}
+  <main class="page">
+    {% block content %}{% endblock %}
+  </main>
+  <div id="admin-confirm-modal" class="admin-confirm" hidden>
+    <div class="admin-confirm__backdrop" data-admin-confirm-cancel></div>
+    <div class="admin-confirm__panel" role="dialog" aria-modal="true" aria-labelledby="admin-confirm-title">
+      <p id="admin-confirm-title" class="admin-confirm__title"></p>
+      <p class="admin-confirm__text"></p>
+      <div class="admin-confirm__actions">
+        <button type="button" class="btn btn--ghost" data-admin-confirm-cancel>Отмена</button>
+        <button type="button" class="btn btn--primary" data-admin-confirm-ok>Подтвердить</button>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

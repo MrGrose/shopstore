@@ -1,0 +1,272 @@
+{% if not product %}
+{% include "site/admin/partials/_flash.html" %}
+<div class="empty muted">Товар не найден</div>
+{% else %}
+{% include "site/admin/partials/_flash.html" %}
+
+<div class="products-detail">
+  <div class="products-detail__header">
+    <div class="products-detail__header-top">
+      <div class="products-detail__status-row">
+        {% if product.catalog_inclusion == 'included' %}
+        <span class="products-pill products-pill--listed">В каталоге</span>
+        {% else %}
+        <span class="products-pill products-pill--unlisted">Исключён</span>
+        {% endif %}
+        {% if product.storefront_site == 'visible' %}
+        <span class="products-pill products-pill--nav-visible">На сайте</span>
+        {% elif product.storefront_site == 'not_visible' %}
+        <span class="products-pill products-pill--nav-orphan">Не на сайте</span>
+        {% else %}
+        <span class="products-pill products-pill--nav-muted">—</span>
+        {% endif %}
+        {% for key in product.storefront_hide_reasons %}
+        <span class="products-pill {% if key == 'supplier_limit' %}products-pill--supplier-limit{% else %}products-pill--nav-muted{% endif %}">{% if tree_reason_labels is defined %}{{ tree_reason_labels.get(key, key) }}{% elif key == 'supplier_limit' %}Лимит TP{% elif key == 'zero_stock' %}Нет остатка{% elif key == 'hidden_brand' %}Скрытый бренд{% elif key == 'inactive' %}Снят{% elif key == 'mapping_excluded' %}Правило навигации{% elif key == 'orphan' %}Не в навигации{% else %}{{ key }}{% endif %}</span>
+        {% endfor %}
+        <span class="products-detail__id mono">#{{ product.id }}</span>
+      </div>
+      <button type="button" class="products-detail__close btn btn--icon btn--ghost" data-products-detail-close title="Закрыть" aria-label="Закрыть">
+        {{ admin_icon('x', 'ico--sm') }}
+      </button>
+    </div>
+
+    <div class="products-detail__hero">
+      {% if product.image_url %}
+      <img class="products-detail__thumb" src="{{ product.image_url }}" alt="" />
+      {% else %}
+      <span class="products-detail__thumb products-detail__thumb--empty">{{ admin_icon('box', 'ico--sm') }}</span>
+      {% endif %}
+      <div class="products-detail__hero-text">
+        <h2 class="products-detail__title">{{ product.title }}</h2>
+        {% set header_sku = (product.variants | selectattr('sku') | map(attribute='sku') | first) or product.external_id %}
+        {% if header_sku %}<p class="products-detail__sku mono">SKU {{ header_sku }}</p>{% endif %}
+        <div class="products-detail__meta-pills">
+          <span class="products-detail__brand-pill">{{ product.brand }}</span>
+          {% if product.catalog_synced_at_display %}
+          <span class="products-detail__sync-pill">Синхр. {{ product.catalog_synced_at_display }}</span>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    {% if product.dom_last_error %}
+    <div class="products-detail__alert">
+      {{ admin_icon('alert', 'ico--sm') }}
+      <span>{{ product.dom_last_error }}</span>
+    </div>
+    {% endif %}
+  </div>
+
+  <form
+    id="admin-product-detail-form-{{ product.id }}"
+    class="products-detail__form admin-product-form{% if product.variants %} admin-product-form-wide{% endif %}"
+    method="post"
+    action="/internal/admin/products/{{ product.id }}/update"
+  >
+    {% include "site/admin/partials/_catalog_return_fields.html" %}
+
+    <div class="products-detail-tabsbar">
+      <div class="products-detail-tabsbar__vitrina products-field products-field--toggle">
+        <span class="products-field__label">На витрине</span>
+        <label class="products-toggle">
+          <input type="checkbox" name="is_active" value="true" class="products-toggle__input" {% if product.is_active %}checked{% endif %} />
+          <span class="products-toggle__track" aria-hidden="true"><span class="products-toggle__thumb"></span></span>
+          <span class="products-toggle__text" data-toggle-label>{% if product.is_active %}Да{% else %}Нет{% endif %}</span>
+        </label>
+      </div>
+      <div class="products-detail-tabsbar__row" data-tabs data-tabs-target="#product-panels">
+        <div class="products-detail-tabs">
+          <button type="button" data-tab="info" class="is-active">Обзор</button>
+          <button type="button" data-tab="stock">Остатки</button>
+          <button type="button" data-tab="pricing">Цены</button>
+          <button type="button" data-tab="media">Медиа</button>
+          <button type="button" data-tab="categories">Категории</button>
+          <button
+            type="button"
+            data-tab="orders"
+            hx-get="/internal/admin/products/{{ product.id }}/orders?page=1"
+            hx-target="#product-orders-panel"
+            hx-swap="innerHTML"
+            hx-trigger="click once"
+          >Заказы</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="product-panels" class="products-detail__body">
+      <div data-panel="info" class="products-detail-fields">
+        <div class="products-field">
+          <label class="products-field__label" for="product-title">Название</label>
+          <input id="product-title" name="title" class="input sp-input" value="{{ product.title }}" required />
+        </div>
+        <div class="products-field">
+          <label class="products-field__label" for="product-brand">Бренд</label>
+          <input id="product-brand" name="brand" class="input sp-input" value="{{ product.brand }}" required />
+        </div>
+        <div class="products-field">
+          <label class="products-field__label" for="product-description">Описание</label>
+          <textarea id="product-description" name="description" class="textarea sp-input" rows="4">{{ product.description or '' }}</textarea>
+        </div>
+        <div class="products-field">
+          <label class="products-field__label" for="product-url">Ссылка на товар</label>
+          <div class="products-field__row">
+            <input id="product-url" name="product_url" class="input sp-input" value="{{ product.product_url or '' }}" />
+            {% if product.product_url %}
+            <a class="products-field__link" href="{{ product.product_url }}" target="_blank" rel="noopener" title="Открыть">↗</a>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <div data-panel="stock" class="products-detail-fields" style="display:none;">
+        {% if not product.variants %}
+        <div class="products-stock-grid">
+          <div class="products-field">
+            <label class="products-field__label" for="product-stock">Остаток</label>
+            <input id="product-stock" name="stock" class="input sp-input" type="number" min="0" step="1" value="{{ product.stock }}" required />
+          </div>
+          <div class="products-field">
+            <label class="products-field__label">Резерв</label>
+            <div class="products-readonly">{{ product.reserved_stock }}</div>
+          </div>
+          <div class="products-field">
+            <label class="products-field__label">Доступно</label>
+            <div class="products-readonly products-readonly--{% if (product.available_stock or 0) > 0 %}ok{% else %}bad{% endif %}">{{ product.available_stock or 0 }}</div>
+          </div>
+          <div class="products-field">
+            <label class="products-field__label">catalog_in_stock</label>
+            <div class="products-readonly">{{ 'да' if product.catalog_in_stock else 'нет' }}</div>
+          </div>
+          <div class="products-field products-field--wide">
+            <label class="products-field__label">В навигации</label>
+            <div class="products-readonly">{{ product.storefront_mapping_status_label_ru }}</div>
+            {% if product.storefront_mapping_orphan_reason %}
+            <p class="small muted products-nav-orphan-reason">{{ product.storefront_mapping_orphan_reason }}</p>
+            {% endif %}
+          </div>
+        </div>
+        {% else %}
+        <p class="small muted admin-variants-total">Итого: <strong id="admin-variants-total">{{ product.variants | map(attribute='inventory_quantity') | sum }}</strong> шт.</p>
+        <div class="table-wrap">
+          <table class="tbl admin-variants-table">
+            <thead>
+              <tr><th>SKU</th><th>Опции</th><th>Остаток</th><th>Резерв</th><th>Доступно</th><th>На витрине</th></tr>
+            </thead>
+            <tbody>
+              {% for v in product.variants %}
+              <tr>
+                <td>{{ v.sku or '—' }}</td>
+                <td>{% if v.option1 %}{{ v.option1 }}{% endif %}{% if v.option2 %} / {{ v.option2 }}{% endif %}{% if v.option3 %} / {{ v.option3 }}{% endif %}{% if not v.option1 and not v.option2 and not v.option3 %}—{% endif %}</td>
+                <td><input name="variant_stock_{{ v.id }}" class="input admin-variant-stock-input" type="number" min="0" step="1" value="{{ v.inventory_quantity }}" required /></td>
+                <td>{{ v.reserved_stock }}</td>
+                <td>{{ v.available_for_sale }}</td>
+                <td>{{ 'да' if v.available else 'нет' }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        <script>
+          (function () {
+            const totalEl = document.getElementById("admin-variants-total");
+            const inputs = document.querySelectorAll(".admin-variant-stock-input");
+            if (!totalEl || !inputs.length) return;
+            const recalc = () => {
+              let sum = 0;
+              inputs.forEach((el) => { sum += Math.max(0, parseInt(el.value, 10) || 0); });
+              totalEl.textContent = String(sum);
+            };
+            inputs.forEach((el) => el.addEventListener("input", recalc));
+          })();
+        </script>
+        {% endif %}
+      </div>
+
+      <div data-panel="pricing" class="products-detail-fields" style="display:none;">
+        <div class="products-field">
+          <label class="products-field__label">Парсинг (EUR)</label>
+          <div class="products-readonly">{{ product.supplier_price_eur_display }}</div>
+        </div>
+        <div class="products-field">
+          <label class="products-field__label" for="product-sale-price">Продажа (₽)</label>
+          <input id="product-sale-price" name="sale_price" class="input sp-input admin-price-input" type="text" value="{{ product.sale_price }}" />
+        </div>
+      </div>
+
+
+      <div data-panel="media" class="products-detail-fields" style="display:none;">
+        <div class="products-field">
+          <label class="products-field__label" for="admin-product-image-url-{{ product.id }}">Сайте</label>
+          <input
+            id="admin-product-image-url-{{ product.id }}"
+            name="image_url"
+            class="input sp-input js-admin-product-image-url"
+            value="{{ product.image_url or '' }}"
+            placeholder="/media/products/… или https://…"
+          />
+        </div>
+        <div class="products-field">
+          <label class="products-field__label">Карточка товара</label>
+          <div class="admin-gallery-url-list js-admin-gallery-url-list">
+            {% for img in product.images | sort(attribute='position') %}
+            <div class="admin-gallery-url-row">
+              <input name="gallery_urls" class="input sp-input js-admin-gallery-url-input" value="{{ img.url }}" />
+              <button type="button" class="btn btn--ghost btn--icon js-admin-gallery-url-remove" title="Удалить" aria-label="Удалить">×</button>
+            </div>
+            {% endfor %}
+          </div>
+          <button type="button" class="btn btn--ghost btn--sm js-admin-gallery-url-add">+ Добавить URL</button>
+        </div>
+        <div class="js-admin-product-gallery-preview products-gallery-preview" {% if not product.image_url and not product.images %}hidden{% endif %}>
+          {% if product.image_url %}
+          <img src="{{ product.image_url }}" alt="" class="products-gallery-preview__img" />
+          {% endif %}
+          {% for img in product.images | sort(attribute='position') %}
+          <img src="{{ img.url }}" alt="" class="products-gallery-preview__img" />
+          {% endfor %}
+        </div>
+        <div class="products-field">
+          <label class="products-field__label" for="admin-product-image-files-{{ product.id }}">Загрузить файлы</label>
+          <input
+            type="file"
+            id="admin-product-image-files-{{ product.id }}"
+            class="input js-admin-product-image-files"
+            accept="image/jpeg,image/png,image/webp"
+            multiple
+          />
+        </div>
+      </div>
+
+      <div data-panel="categories" class="products-detail-fields" style="display:none;">
+        {% include "site/admin/partials/_product_category_readonly.html" %}
+      </div>
+
+      <div data-panel="orders" class="products-detail-fields" style="display:none;">
+        <div id="product-orders-panel" class="products-orders-panel">
+          <p class="empty muted small">Нажмите «Заказы», чтобы загрузить историю</p>
+        </div>
+      </div>
+    </div>
+  </form>
+
+  <div class="products-detail__footer products-detail-actions">
+    <button
+      type="button"
+      class="admin-btn-pill admin-btn-pill--danger admin-btn-pill--sm js-admin-product-delete"
+      data-product-id="{{ product.id }}"
+      data-return-view="{{ catalog_return.view }}"
+      data-return-top="{{ catalog_return.top }}"
+      data-return-page="{{ catalog_return.page }}"
+      {% if catalog_return.category %}data-return-category="{{ catalog_return.category }}"{% endif %}
+      {% if catalog_return.brand %}data-return-brand="{{ catalog_return.brand }}"{% endif %}
+      {% if catalog_return.q %}data-return-q="{{ catalog_return.q }}"{% endif %}
+      {% if catalog_return.sort_price %}data-return-sort-price="{{ catalog_return.sort_price }}"{% endif %}
+    >Удалить товар</button>
+    <button
+      type="submit"
+      form="admin-product-detail-form-{{ product.id }}"
+      class="admin-btn-pill admin-btn-pill--sm products-detail__save"
+    >Сохранить</button>
+  </div>
+</div>
+{% endif %}

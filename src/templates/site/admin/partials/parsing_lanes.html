@@ -1,0 +1,46 @@
+{% set lanes_data = overview.lanes_overview if overview.lanes_overview is defined else {} %}
+{% set availability = lanes_data.availability if lanes_data.availability is defined else overview.session_file %}
+{% set lanes = lanes_data.lanes if lanes_data.lanes is defined else [] %}
+
+<section class="parsing-v2__lanes-card">
+  <div class="parsing-v2__section-head">
+    <h2 class="parsing-v2__title">Lanes · сессии и торможение</h2>
+  </div>
+  <div class="parsing-v2__lanes-grid">
+    {% for lane in lanes %}
+    {% set session = lane.session if lane.session is defined else lane %}
+    {% set throttle = lane.throttle if lane.throttle is defined else {} %}
+    <div class="parsing-v2__lane-card">
+      <div class="parsing-v2__lane-head">
+        <strong>Lane {{ lane.lane_id }} · {{ lane.worker }}</strong>
+        <span class="parsing-v2__lane-badge parsing-v2__lane-badge--session-{{ session.status if session.status else 'err' }}">
+          {{ session.status_label or '—' }}
+        </span>
+      </div>
+      <div class="parsing-v2__lane-session mono">
+        <code>{{ session.session_dir or ('session-' ~ lane.lane_id ~ '/') }}storage_state.json</code>
+        {% if session.age_hours is not none %} · {{ session.age_hours }} ч{% endif %}
+        {% if session.refresh_hint %} · {{ session.refresh_hint }}{% endif %}
+      </div>
+      <div class="parsing-v2__lane-throttle">
+        <span class="parsing-v2__lane-throttle-label">Торможение</span>
+        <span class="parsing-v2__lane-badge parsing-v2__lane-badge--{{ throttle.status if throttle.status else 'healthy' }}">
+          {{ throttle.status_label or 'Здоров' }}
+        </span>
+        <span class="parsing-v2__lane-throttle-meta">
+          Пауза: <b>{% if throttle.cooldown_seconds %}{{ throttle.cooldown_seconds }} с{% else %}—{% endif %}</b>
+          · 429: <b>{{ throttle.consecutive_429 or 0 }}</b>
+        </span>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</section>
+
+<div class="parsing-v2__availability-row">
+  <span class="parsing-v2__dot parsing-v2__dot--{% if availability.status == 'ok' %}ok{% elif availability.status == 'warn' %}warn{% else %}err{% endif %}"></span>
+  <strong>Availability</strong>
+  <code class="mono">{{ availability.session_dir or 'session/' }}storage_state.json</code>
+  {% if availability.age_hours is not none %} · {{ availability.age_hours }} ч{% endif %}
+  · {{ availability.status_label or '—' }}
+</div>

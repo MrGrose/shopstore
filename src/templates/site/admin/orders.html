@@ -1,0 +1,160 @@
+{% extends "site/admin/base.html" %}
+{% from "site/admin/partials/_admin_ui_macros.html" import admin_page_head %}
+{% block admin_page %}orders{% endblock %}
+{% block title %}Заказы — Admin{% endblock %}
+{% block content %}
+<div class="admin-page orders-page">
+{% if selected_id and detail %}
+  {% set order = detail.order %}
+  {% if success or error %}
+  {% include "site/admin/partials/_flash.html" %}
+  {% endif %}
+  <header class="orders-detail-head">
+    <a href="/internal/admin/orders?{{ admin_orders_query(page=page, q=q or none, status=status_filter or none, date_from=date_from or none, date_to=date_to or none) }}" class="orders-detail-head__back">
+      {{ admin_icon("arrow-left", "ico ico--sm") }}
+      К списку заказов
+    </a>
+    <div class="orders-detail-head__row">
+      <div class="orders-detail-head__title-group">
+        <h1 class="orders-detail-head__title mono">Заказ #{{ order.id }}</h1>
+        <span class="orders-pill orders-pill--{{ order.status }} orders-pill--with-icon">
+          {{ detail.order_status_display }}
+        </span>
+        {% if detail.is_new_customer %}
+        <span class="orders-table__new-badge">Новый</span>
+        {% endif %}
+        {% if order.status in ('created', 'processing') and order.availability_confirmation_status == 'pending' %}
+        <span class="orders-table__availability-badge">
+          {{ admin_icon("alert", "ico orders-table__availability-icon") }}
+          Проверить наличие
+        </span>
+        {% endif %}
+      </div>
+      <div class="orders-detail-head__meta mono">
+        <span>{{ order.created_at_display or '—' }}</span>
+        <span class="orders-detail-head__meta-sum">{{ order.total_amount }} ₽</span>
+        {% if order.user_name %}<span class="orders-detail-head__meta-client">{{ order.user_name }}</span>{% endif %}
+      </div>
+    </div>
+  </header>
+  <div class="orders-detail-page">
+    {% with order=order, payment_tech=detail.payment_tech, order_journey=detail.order_journey, event_rows=detail.event_rows, status_choices=detail.status_choices, status_select_hint=detail.status_select_hint, order_status_display=detail.order_status_display, orders_return=detail.orders_return, availability_labels=detail.availability_labels, availability_stock_rows=detail.availability_stock_rows, supplier_availability_snapshot=detail.supplier_availability_snapshot, payment_attempt_rows=detail.payment_attempt_rows, has_duplicate_payment=detail.has_duplicate_payment, has_late_payment_after_auto_cancel=detail.has_late_payment_after_auto_cancel, payment_attempts_count=detail.payment_attempts_count, payment_attempts_limit=detail.payment_attempts_limit, composition_edit_allowed=detail.composition_edit_allowed, composition_edit_block_reason=detail.composition_edit_block_reason, composition_qr_expires_at_display=detail.composition_qr_expires_at_display, start_assembling_allowed=detail.start_assembling_allowed, admin_action_rail=detail.admin_action_rail, support_open_count=detail.support_open_count, customer_orders=detail.customer_orders, customer_orders_count=detail.customer_orders_count, is_new_customer=detail.is_new_customer, delivery_profile=detail.delivery_profile, supplier_order_estimate=detail.supplier_order_estimate, supplier_orders=detail.supplier_orders, packing=detail.packing, admin_shipments=detail.admin_shipments, admin_supplier_parcels=detail.admin_supplier_parcels, shipment_counts=detail.shipment_counts, packing_recommendation=detail.packing_recommendation, packing_preview_url=detail.packing_preview_url, packing_manual_url=detail.packing_manual_url, packing_result_url=detail.packing_result_url, packing_manual=detail.packing_manual, packing_add_to=detail.packing_add_to, packing_add_urls=detail.packing_add_urls %}
+      {% include "site/admin/partials/order_detail.html" %}
+    {% endwith %}
+  </div>
+
+{% elif selected_id %}
+  <header class="admin-page__head">
+    <a href="/internal/admin/orders?{{ admin_orders_query(page=page, q=q or none, status=status_filter or none, date_from=date_from or none, date_to=date_to or none) }}" class="admin-page__back">
+      {{ admin_icon("arrow-left", "ico ico--sm") }}
+      К списку заказов
+    </a>
+    <h1 class="admin-page__title">Заказ не найден</h1>
+  </header>
+  <div class="orders-empty">
+    {{ admin_icon("orders", "ico orders-empty__icon") }}
+    <p>Заказ #{{ selected_id }} не найден</p>
+  </div>
+
+{% else %}
+  {% call admin_page_head('Заказы', sub='Управление заказами и доставкой') %}{% endcall %}
+
+  {% if success or error %}
+  {% include "site/admin/partials/_flash.html" %}
+  {% endif %}
+  <div id="admin-orders-flash" class="orders-inline-flash" hidden></div>
+
+  {% if paid_filter_label %}
+  <div class="orders-paid-filter-banner">
+    <span>{{ paid_filter_label }}</span>
+    <a class="orders-paid-filter-banner__clear" href="/internal/admin/orders">Сбросить</a>
+  </div>
+  {% endif %}
+
+  {% if queue_filter %}
+  <div class="orders-queue-filter-banner">
+    <span>Очередь: {{ queue_labels.get(queue_filter, queue_filter) }}</span>
+    <a class="orders-queue-filter-banner__clear" href="/internal/admin/orders">Сбросить</a>
+  </div>
+  {% endif %}
+
+  {% if orders_queue_cards %}
+  <div class="orders-metrics">
+    {% for card in orders_queue_cards %}
+    <a
+      href="/internal/admin/orders?{{ admin_orders_query(queue=card.key) }}"
+      class="orders-metric orders-metric--queue orders-metric--{{ card.tone }}{% if queue_filter == card.key %} is-active{% endif %}{% if card.count == 0 %} is-empty{% endif %}"
+    >
+      <span class="orders-metric__head">
+        <span class="orders-metric__icon">{{ admin_icon(card.icon, "ico orders-metric__icon-svg") }}</span>
+        <span class="orders-metric__value">{{ card.count }}</span>
+      </span>
+      <span class="orders-metric__label">{{ card.label }}</span>
+    </a>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <div class="admin-list-page orders-list-page">
+    <form id="admin-orders-filters" class="orders-toolbar">
+      <div class="orders-toolbar__filters-row">
+        <div class="orders-search">
+          {{ admin_icon("search", "ico ico--sm orders-search__icon") }}
+          <input
+            name="q"
+            class="orders-search__input"
+            type="search"
+            placeholder="Поиск: № заказа, клиент, Telegram…"
+            value="{{ q }}"
+            hx-get="/internal/admin/orders/table"
+            hx-target="#admin-orders-table"
+            hx-trigger="keyup changed delay:350ms, search"
+            hx-include="#admin-orders-filters"
+            hx-on:htmx:config-request="event.detail.parameters.page = 1; document.getElementById('admin-orders-page').value = '1'"
+          />
+        </div>
+        {% include "site/admin/partials/_date_range_picker.html" %}
+      </div>
+      <input type="hidden" name="status" id="orders-status-filter" value="{{ status_filter or '' }}" />
+      <input type="hidden" name="queue" id="orders-queue-filter" value="{{ queue_filter or '' }}" />
+      <input type="hidden" name="page" value="{{ page }}" id="admin-orders-page" />
+      <input type="hidden" name="paid_from" value="{{ paid_from or '' }}" />
+      <input type="hidden" name="paid_to" value="{{ paid_to or '' }}" />
+      {% set selected_statuses = status_filters | default([]) %}
+      <div class="orders-filters__pills">
+        <button
+          type="button"
+          class="admin-filter-pill {% if not selected_statuses %}is-active{% endif %}"
+          data-status=""
+          onclick="adminOrdersToggleStatusPill(this, event)"
+        >Все <span class="admin-filter-pill__count" id="admin-orders-status-count-all">{{ orders_status_counts.get('', 0) }}</span></button>
+        {% for code, label in status_labels.items() %}
+        <button
+          type="button"
+          class="admin-filter-pill {% if code in selected_statuses %}is-active{% endif %}"
+          data-status="{{ code }}"
+          onclick="adminOrdersToggleStatusPill(this, event)"
+        >{{ label }} <span class="admin-filter-pill__count" id="admin-orders-status-count-{{ code }}">{{ orders_status_counts.get(code, 0) }}</span></button>
+        {% endfor %}
+        <button
+          type="button"
+          class="admin-filter-pill admin-filter-pill--danger"
+          id="admin-orders-delete-btn"
+          hidden
+        >Удалить выбранные <span class="admin-filter-pill__count" id="admin-orders-delete-count">0</span></button>
+      </div>
+    </form>
+
+    <div
+      id="admin-orders-table"
+      class="orders-table-card"
+      hx-get="/internal/admin/orders/table?{{ admin_orders_query(page=page, q=q or none, status=status_filter or none, date_from=date_from or none, date_to=date_to or none, paid_from=paid_from or none, paid_to=paid_to or none, queue=queue_filter or none) }}"
+      hx-trigger="load"
+      hx-swap="innerHTML"
+    >
+      <div class="orders-empty orders-empty--compact">Загрузка…</div>
+    </div>
+  </div>
+{% endif %}
+</div>
+{% endblock %}

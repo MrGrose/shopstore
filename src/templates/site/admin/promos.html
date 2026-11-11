@@ -1,0 +1,146 @@
+{% extends "site/admin/base.html" %}
+{% from "site/admin/partials/_admin_ui_macros.html" import admin_page_head, admin_btn_pill, admin_filter_pill %}
+{% block admin_page %}promos{% endblock %}
+{% block title %}Промокоды — Admin{% endblock %}
+{% block content %}
+{% set promo_list_titles = {
+  'active': 'Активные промокоды',
+  'inactive': 'Неактивные промокоды',
+  'all': 'Все промокоды',
+} %}
+{% set promo_discount_labels = {
+  'percent': 'Процент',
+  'fixed_rub': 'Фикс ₽',
+} %}
+{% set promo_usage_labels = {
+  'multi_use': 'Многоразовый',
+  'single_use': 'Разовый',
+  'single_use_per_user': 'На пользователя',
+} %}
+<div class="admin-page promos-page">
+{% call admin_page_head('Промокоды') %}{% endcall %}
+
+{% include "site/admin/partials/_flash.html" %}
+
+<nav class="promos-toolbar admin-filter-pills" aria-label="Фильтр промокодов">
+  {{ admin_filter_pill(
+    'Активные',
+    active=(filter_status == 'active'),
+    count=promo_filter_counts.active,
+    href='/internal/admin/promos?filter=active'
+  ) }}
+  {{ admin_filter_pill(
+    'Неактивные',
+    active=(filter_status == 'inactive'),
+    count=promo_filter_counts.inactive,
+    href='/internal/admin/promos?filter=inactive'
+  ) }}
+  {{ admin_filter_pill(
+    'Все',
+    active=(filter_status == 'all'),
+    count=promo_filter_counts.all,
+    href='/internal/admin/promos?filter=all'
+  ) }}
+</nav>
+
+<div class="promos-layout">
+  <div class="promos-main">
+    <section class="ac-card promos-list-card">
+      <div class="ac-card__head">
+        <h2 class="ac-card__title">{{ promo_list_titles.get(filter_status, 'Промокоды') }}</h2>
+      </div>
+      <div class="ac-card__body ac-card__body--flush promos-list-card__scroll">
+        {% if promos %}
+        <div class="promos-table-head" role="row">
+          <span>Код</span>
+          <span>Тип</span>
+          <span>Значение</span>
+          <span>Режим</span>
+          <span>До</span>
+          <span class="promos-table-head__actions">Действия</span>
+        </div>
+        {% for promo in promos %}
+        <div class="promos-table-row" role="row">
+          <span class="promos-table-row__code mono">{{ promo.code }}</span>
+          <span>
+            <span class="promos-type-pill">{{ promo_discount_labels.get(promo.discount_type, promo.discount_type) }}</span>
+          </span>
+          <span class="promos-table-row__value num">{{ promo.value }}</span>
+          <span class="promos-table-row__mode">{{ promo_usage_labels.get(promo.usage_mode, promo.usage_mode) }}</span>
+          <span>{{ promo.active_to.strftime('%d.%m.%Y') if promo.active_to else '—' }}</span>
+          <span class="promos-table-row__actions">
+            <form method="post" action="/internal/admin/promos/{{ promo.id }}/toggle">
+              <input type="hidden" name="is_active" value="{{ '0' if promo.is_active else '1' }}" />
+              {{ admin_btn_pill('Выкл' if promo.is_active else 'Вкл', type='submit', variant='secondary', size='sm') }}
+            </form>
+            <form method="post" action="/internal/admin/promos/{{ promo.id }}/delete" hx-confirm="Удалить промокод {{ promo.code }}?">
+              {{ admin_btn_pill('Удалить', type='submit', variant='danger', size='sm') }}
+            </form>
+          </span>
+        </div>
+        {% endfor %}
+        {% else %}
+        <div class="promos-empty muted">Промокодов нет</div>
+        {% endif %}
+      </div>
+    </section>
+  </div>
+
+  <aside class="promos-side">
+    <details class="ac-card promos-create-card" open>
+      <summary class="ac-card__head promos-create-card__summary">
+        <h2 class="ac-card__title">Создать промокод</h2>
+        <span class="promos-create-card__chevron" aria-hidden="true"></span>
+      </summary>
+      <div class="ac-card__body">
+        <form method="post" action="/internal/admin/promos" class="promos-form">
+          <div class="promos-field">
+            <label class="promos-field__label" for="promo-code">Код</label>
+            <input id="promo-code" name="code" class="promos-field__input" placeholder="PADEL10" required />
+          </div>
+          <div class="promos-field">
+            <label class="promos-field__label" for="promo-discount-type">Тип скидки</label>
+            <select id="promo-discount-type" name="discount_type" class="promos-field__select">
+              <option value="percent">Процент</option>
+              <option value="fixed_rub">Фикс ₽</option>
+            </select>
+          </div>
+          <div class="promos-field">
+            <label class="promos-field__label" for="promo-value">Значение</label>
+            <input id="promo-value" name="value" class="promos-field__input" placeholder="10" required />
+          </div>
+          <div class="promos-field">
+            <label class="promos-field__label" for="promo-usage-mode">Режим использования</label>
+            <select id="promo-usage-mode" name="usage_mode" class="promos-field__select">
+              <option value="multi_use">Многоразовый</option>
+              <option value="single_use">Разовый</option>
+              <option value="single_use_per_user">На пользователя</option>
+            </select>
+          </div>
+          <div class="promos-field">
+            <label class="promos-field__label" for="promo-active-to">Активен до</label>
+            <input id="promo-active-to" name="active_to" type="date" class="promos-field__input" required />
+          </div>
+          <div class="promos-form__actions">
+            {{ admin_btn_pill('Создать', type='submit', size='sm') }}
+          </div>
+        </form>
+      </div>
+    </details>
+
+    <section class="ac-card promos-help-card">
+      <div class="ac-card__head">
+        <h2 class="ac-card__title">Справка по типам</h2>
+      </div>
+      <div class="ac-card__body promos-help-card__body">
+        <p class="promos-field__hint"><strong>Процент</strong> — скидка в % от суммы заказа</p>
+        <p class="promos-field__hint"><strong>Фикс ₽</strong> — фиксированная сумма в рублях</p>
+        <p class="promos-field__hint"><strong>Многоразовый</strong> — без лимита использований</p>
+        <p class="promos-field__hint"><strong>Разовый</strong> — один раз на весь магазин: скидку получит только первый заказ, потом код недействителен</p>
+        <p class="promos-field__hint"><strong>На пользователя</strong> — каждый клиент может применить код один раз при оформлении</p>
+      </div>
+    </section>
+  </aside>
+</div>
+</div>
+{% endblock %}

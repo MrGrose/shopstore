@@ -1,0 +1,73 @@
+<section class="margins-group-grid" aria-label="Группы {{ sport_labels.get(selected_sport, selected_sport) }}">
+  {% for group in margin_groups %}
+  <a
+    href="/internal/admin/margins?sport={{ selected_sport }}&selected={{ group.slug }}"
+    class="margin-group-card margin-group-card--{{ loop.index0 % 6 }}{% if selected_slug == group.slug %} is-active{% endif %}"
+  >
+    <span class="margin-group-card__mark" aria-hidden="true">
+      {{ admin_icon(group.slug, "margin-group-card__icon") }}
+    </span>
+    <span class="margin-group-card__body">
+      <span class="margin-group-card__label">{{ group.label }}</span>
+      <span class="margin-group-card__percent">{{ group.rule.margin_percent }}%</span>
+      <span class="margin-group-card__counts">
+        <span>Всего {{ group.total_count }}</span>
+        <strong>На сайте {{ group.storefront_count }}</strong>
+      </span>
+    </span>
+  </a>
+  {% endfor %}
+</section>
+
+{% for group in margin_groups %}
+  {% if selected_slug == group.slug %}
+    {% with title=sport_labels.get(selected_sport, selected_sport) ~ ' → ' ~ group.label, group=group, rule=group.rule, storefront_count=group.storefront_count, active_job=group.active_job, last_job=group.last_job, history=margin_history %}
+      {% include "site/admin/partials/margin_rule_detail.html" %}
+    {% endwith %}
+  {% endif %}
+{% endfor %}
+
+{% if fallback %}
+<details class="margin-fallback"{% if selected_slug == '__fallback__' %} open{% endif %}>
+  <summary class="margin-fallback__summary">
+    <span class="margin-fallback__heading">
+      <span class="margin-fallback__title">Резервная наценка</span>
+      <span class="margin-fallback__sub">Если точное правило не найдено</span>
+    </span>
+    <span class="margin-fallback__summary-side">
+      <span class="margin-fallback__stats">
+        <strong>{{ fallback.rule.margin_percent }}%</strong>
+        <span>Всего {{ fallback.total_count }}</span>
+        <span>На сайте {{ fallback.storefront_count }}</span>
+      </span>
+      <span class="margin-fallback__toggle" aria-hidden="true">
+        {{ admin_icon("chevron-right", "margin-fallback__toggle-icon") }}
+      </span>
+    </span>
+  </summary>
+
+  <div class="margin-fallback__body">
+
+  {% if selected_slug == '__fallback__' %}
+    {% with title=sport_labels.get(selected_sport, selected_sport) ~ ' → резервная наценка', group=fallback, rule=fallback.rule, storefront_count=fallback.storefront_count, active_job=fallback.active_job, last_job=fallback.last_job, history=margin_history %}
+      {% include "site/admin/partials/margin_rule_detail.html" %}
+    {% endwith %}
+  {% else %}
+  <a class="margin-fallback__edit" href="/internal/admin/margins?sport={{ selected_sport }}&selected=__fallback__">Изменить резервное правило</a>
+  {% endif %}
+
+  <details class="margin-unmapped" open>
+    <summary>Не распределено — {{ fallback.storefront_count }} товаров на витрине</summary>
+    <div
+      id="margin-unmapped-list"
+      class="margin-unmapped__list"
+      hx-get="/internal/admin/margins/unmapped?sport={{ selected_sport }}&page=1"
+      hx-trigger="load"
+      hx-swap="innerHTML"
+    >
+      <div class="margin-unmapped__loading">Загрузка…</div>
+    </div>
+  </details>
+  </div>
+</details>
+{% endif %}

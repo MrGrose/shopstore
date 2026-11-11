@@ -1,0 +1,50 @@
+<div class="admin-filter-pills products-filter-pills" id="admin-products-tree-inclusion">
+  {% for key, pair in tree_inclusion_views.items() %}
+  <button
+    type="button"
+    class="admin-filter-pill {% if inclusion == key %}is-active{% endif %}"
+    data-tree-inclusion="{{ key }}"
+    hx-get="/internal/admin/products/table"
+    hx-target="#admin-products-table"
+    hx-include="#admin-products-filters"
+    hx-vals='{"inclusion": "{{ key }}", "site": "{% if key == 'excluded' %}all{% elif key == 'all' %}all{% else %}all{% endif %}", "reason": "all", "page": 1}'
+    hx-swap="innerHTML"
+    hx-on:htmx:config-request="adminProductsBeforeInclusionChange(event, '{{ key }}')"
+  >{{ pair[0] }} <span class="admin-filter-pill__count" id="admin-products-tree-count-{{ key }}">{% if catalog_summary is defined and catalog_summary %}{% if key == 'all' %}{{ catalog_summary.get('total', 0) }}{% else %}{{ catalog_summary.get(key, 0) }}{% endif %}{% else %}0{% endif %}</span></button>
+  {% endfor %}
+</div>
+{% if show_tree_site_row %}
+<div class="admin-filter-pills admin-filter-pills--nav-status" id="admin-products-tree-site">
+  {% for key, pair in tree_site_views.items() %}
+  <button
+    type="button"
+    class="admin-filter-pill admin-filter-pill--sub {% if site == key %}is-active{% endif %}"
+    data-tree-site="{{ key }}"
+    hx-get="/internal/admin/products/table"
+    hx-target="#admin-products-table"
+    hx-include="#admin-products-filters"
+    hx-vals='{"inclusion": "included", "site": "{{ key }}", "reason": "all", "page": 1}'
+    hx-swap="innerHTML"
+    hx-on:htmx:config-request="adminProductsBeforeSiteChange(event, '{{ key }}')"
+  >{{ pair[0] }} <span class="admin-filter-pill__count" id="admin-products-tree-count-{{ key }}">{% if catalog_summary is defined and catalog_summary %}{{ catalog_summary.get(key, 0) }}{% else %}0{% endif %}</span></button>
+  {% endfor %}
+</div>
+{% endif %}
+{% if show_tree_reason_row %}
+<div class="admin-filter-pills admin-filter-pills--nav-status" id="admin-products-tree-reason">
+  {% for key, pair in tree_reason_views.items() %}
+  <button
+    type="button"
+    class="admin-filter-pill admin-filter-pill--sub {% if reason == key %}is-active{% endif %}"
+    data-tree-reason="{{ key }}"
+    hx-get="/internal/admin/products/table"
+    hx-target="#admin-products-table"
+    hx-include="#admin-products-filters"
+    hx-vals='{"inclusion": "included", "site": "not_visible", "reason": "{{ key }}", "page": 1}'
+    hx-swap="innerHTML"
+    hx-on:htmx:config-request="adminProductsBeforeReasonChange(event, '{{ key }}')"
+  >{{ pair[0] }} <span class="admin-filter-pill__count" id="admin-products-tree-count-reason-{{ key }}">{% if catalog_summary is defined and catalog_summary %}{{ catalog_summary.get('reason_' ~ key, 0) }}{% else %}0{% endif %}</span></button>
+  {% endfor %}
+</div>
+<p class="products-nav-status-note muted">Причины могут пересекаться — сумма не равна «Не на сайте».</p>
+{% endif %}

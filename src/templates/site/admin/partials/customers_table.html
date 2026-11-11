@@ -1,0 +1,82 @@
+{% include "site/admin/partials/_customers_total_title_oob.html" %}
+{% if rows %}
+<div class="customers-table-wrap{% if customers_bulk_delete_enabled %} customers-table-wrap--bulk-delete{% endif %}">
+        <div class="admin-table__head customers-table__head">
+    {% if customers_bulk_delete_enabled %}
+    <label class="customers-table__check customers-table__check--head" onclick="event.stopPropagation()">
+      <input type="checkbox" data-customers-select-all aria-label="Выбрать все на странице" />
+    </label>
+    {% endif %}
+    <span>ID</span>
+    <span>Клиент</span>
+    <span>Реферал</span>
+    <span>Регистрация</span>
+    <span class="right">Заказы</span>
+    <span class="right">Оплачено</span>
+  </div>
+  <div class="customers-table__body">
+    {% for row in rows %}
+    {% set user = row.user %}
+    <div
+      class="customers-table__row"
+      role="link"
+      tabindex="0"
+      data-href="/internal/admin/customers?id={{ user.id }}"
+      onclick="adminCustomersOpenRow(event, this)"
+      onkeydown="adminCustomersRowKeydown(event, this)"
+    >
+      {% if customers_bulk_delete_enabled %}
+      {% if user.role != 'admin' %}
+      <label class="customers-table__check" onclick="event.stopPropagation()">
+        <input
+          type="checkbox"
+          class="customers-table__delete-input"
+          data-customer-delete-checkbox
+          value="{{ user.id }}"
+          aria-label="Выбрать клиента #{{ user.id }}"
+        />
+      </label>
+      {% else %}
+      <span class="customers-table__check customers-table__check--empty" aria-hidden="true"></span>
+      {% endif %}
+      {% endif %}
+      <div class="customers-table__id mono">#{{ user.id }}</div>
+      <div class="customers-table__client">
+        {% if user.name %}
+        <span class="customers-table__name">{{ user.name }}</span>
+        {% elif row.telegram_username %}
+        <span class="customers-table__name">—</span>
+        {% else %}
+        <span class="customers-table__name">{{ row.display_name }}</span>
+        {% endif %}
+        {% if row.telegram_username %}
+        <span class="customers-table__telegram">@{{ row.telegram_username }}</span>
+        {% endif %}
+      </div>
+      <div class="customers-table__referrer">
+        {% if row.referrer_name %}
+        <span class="customers-table__referrer-name">{{ row.referrer_name }}</span>
+        {% elif user.referrer_id %}
+        <span class="customers-table__referrer-empty mono">#{{ user.referrer_id }}</span>
+        {% else %}
+        <span class="customers-table__referrer-empty">—</span>
+        {% endif %}
+      </div>
+      <div class="customers-table__date">
+        {{ format_datetime_msk(user.created_at, with_tz_label=False) if user.created_at else '—' }}
+      </div>
+      <div class="customers-table__orders right">{{ row.orders_count }}</div>
+      <div class="customers-table__revenue right">
+        {% if row.total_spent and row.total_spent > 0 %}{{ format_finance_rub(row.total_spent) }}{% else %}—{% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% include "site/admin/partials/_customers_pagination.html" %}
+</div>
+{% else %}
+<div class="customers-empty">
+  {{ admin_icon("customers", "ico customers-empty__icon") }}
+  <p>Клиенты не найдены</p>
+</div>
+{% endif %}

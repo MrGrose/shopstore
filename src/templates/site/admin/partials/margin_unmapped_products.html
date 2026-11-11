@@ -1,0 +1,33 @@
+{% if rows %}
+  {% for row in rows %}
+  {% set product = row.product %}
+  <article class="margin-unmapped-row">
+    <div class="margin-unmapped-row__main">
+      <div class="margin-unmapped-row__title"><span class="mono">#{{ product.id }}</span> {{ product.title }}</div>
+      <div class="margin-unmapped-row__meta">
+        <span>{{ product.brand or 'Без бренда' }}</span>
+        <span>{{ product.sport_type or '—' }}</span>
+        <span>L1: {{ product.category_l1 or '—' }}</span>
+        <span>L2: {{ product.category_l2 or '—' }}</span>
+        <span>L3: {{ product.category_l3 or '—' }}</span>
+        <span>trade_group: {{ product.trade_group or '—' }}</span>
+      </div>
+    </div>
+    <div class="margin-unmapped-row__reason">
+      {{ reason_labels.get(row.reason, row.reason or 'Fallback') }} · применено {{ row.margin_percent }}%
+    </div>
+    <a class="btn btn--sm" href="/internal/admin/products?id={{ product.id }}">Открыть товар</a>
+  </article>
+  {% endfor %}
+  {% if page * page_size < total %}
+  <button
+    class="btn margin-unmapped__more"
+    hx-get="/internal/admin/margins/unmapped?sport={{ sport }}&page={{ page + 1 }}"
+    hx-target="#margin-unmapped-list"
+    hx-swap="beforeend"
+    hx-on::after-request="this.remove()"
+  >Ещё товары</button>
+  {% endif %}
+{% else %}
+  <div class="margin-unmapped__empty">Нераспределённых товаров нет</div>
+{% endif %}

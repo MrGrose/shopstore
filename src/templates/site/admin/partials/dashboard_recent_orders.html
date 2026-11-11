@@ -1,0 +1,10 @@
+{% for row in recent_order_rows %}
+<tr style="cursor:pointer" onclick="location.href='/internal/admin/orders?id={{ row.order.id }}'">
+  <td class="mono">#{{ row.order.id }}</td>
+  <td>{{ row.user_name or '—' }}</td>
+  <td><span class="badge st st--{{ row.order.status }}"><span class="dot"></span>{{ status_labels.get(row.order.status, row.order.status) }}</span></td>
+  <td class="right mono">{{ row.order.total_amount }} ₽</td>
+</tr>
+{% else %}
+<tr><td colspan="4" class="muted">Заказов пока нет</td></tr>
+{% endfor %}

@@ -1,0 +1,14 @@
+{% if session_file and session_file.status != 'ok' %}
+<div class="small" style="margin-bottom:8px;">
+  <span class="pill {% if session_file.status == 'warn' %}pill--warn{% else %}pill--err{% endif %}">
+    Сессия: {{ session_file.status_label }}
+  </span>
+  {% if session_file.age_hours is not none %}
+  <span class="muted"> · {{ session_file.age_hours }}ч назад</span>
+  {% endif %}
+</div>
+{% endif %}
+
+{% with rows=parsing.steps %}
+{% include "site/admin/partials/_status_rows.html" %}
+{% endwith %}

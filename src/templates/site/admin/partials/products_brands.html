@@ -1,0 +1,154 @@
+{% set search_q = search_q | default('') %}
+{% set brand_visibility = brand_visibility | default('all') %}
+{% set brand_summary = brand_summary | default({'total_brands': 0, 'visible_brands': 0, 'hidden_brands': 0}) %}
+{% set brand_products_total = brand_products_total | default(0) %}
+{% set brand_total = brand_total | default(0) %}
+{% set page = page | default(1) %}
+{% set total_pages = total_pages | default(1) %}
+<form id="admin-products-brands-filters" class="hidden">
+  <input type="hidden" name="q" id="admin-products-brands-q" value="{{ search_q }}" />
+  <input type="hidden" name="visibility" id="admin-products-brands-visibility" value="{{ brand_visibility }}" />
+  <input type="hidden" name="page" id="admin-products-brands-page" value="{{ page }}" />
+</form>
+<div class="products-toolbar">
+  <div class="products-toolbar__row">
+    <div class="products-search">
+      {{ admin_icon('search', 'ico ico--sm products-search__icon') }}
+      <input
+        type="text"
+        class="products-search__input"
+        id="admin-products-brands-search-input"
+        value="{{ search_q }}"
+        placeholder="Поиск по бренду"
+        autocomplete="off"
+        onkeydown="if(event.key==='Enter'){event.preventDefault();document.getElementById('admin-products-brands-search-btn').click();}"
+      />
+      <button
+        type="button"
+        id="admin-products-brands-search-clear"
+        class="btn btn--icon btn--ghost products-search__btn"
+        title="Очистить поиск"
+        aria-label="Очистить поиск"
+        {% if not search_q %}hidden{% endif %}
+        hx-get="/internal/admin/products/brands"
+        hx-target="#admin-products-tab-panel"
+        hx-include="#admin-products-brands-filters"
+        hx-swap="innerHTML"
+        hx-on:htmx:config-request="adminProductsBeforeClearBrandsSearchRequest(event)"
+      >{{ admin_icon('x', 'ico--sm') }}</button>
+      <button
+        type="button"
+        id="admin-products-brands-search-btn"
+        class="btn btn--icon products-search__btn"
+        title="Найти"
+        aria-label="Найти"
+        hx-get="/internal/admin/products/brands"
+        hx-target="#admin-products-tab-panel"
+        hx-include="#admin-products-brands-filters"
+        hx-swap="innerHTML"
+        hx-on:htmx:config-request="adminProductsBeforeBrandsSearchRequest(event)"
+      >{{ admin_icon('search', 'ico--sm') }}</button>
+    </div>
+  </div>
+  <div class="products-toolbar__row products-brands-summary">
+    <button
+      type="button"
+      class="admin-filter-pill admin-filter-pill--sub {% if brand_visibility == 'all' %}is-active{% endif %}"
+      data-brand-visibility="all"
+      hx-get="/internal/admin/products/brands"
+      hx-target="#admin-products-tab-panel"
+      hx-include="#admin-products-brands-filters"
+      hx-swap="innerHTML"
+      hx-on:htmx:config-request="adminProductsBeforeBrandsVisibilityRequest(event, 'all')"
+      hx-on:htmx:before-request="adminProductsBrandsPillActivate(this)"
+    >
+      Все
+      <span class="admin-filter-pill__count">{{ brand_summary.total_brands }}</span>
+    </button>
+    <button
+      type="button"
+      class="admin-filter-pill admin-filter-pill--sub {% if brand_visibility == 'visible' %}is-active{% endif %}"
+      data-brand-visibility="visible"
+      hx-get="/internal/admin/products/brands"
+      hx-target="#admin-products-tab-panel"
+      hx-include="#admin-products-brands-filters"
+      hx-swap="innerHTML"
+      hx-on:htmx:config-request="adminProductsBeforeBrandsVisibilityRequest(event, 'visible')"
+      hx-on:htmx:before-request="adminProductsBrandsPillActivate(this)"
+    >
+      На витрине
+      <span class="admin-filter-pill__count">{{ brand_summary.visible_brands }}</span>
+    </button>
+    <button
+      type="button"
+      class="admin-filter-pill admin-filter-pill--sub admin-filter-pill--muted {% if brand_visibility == 'hidden' %}is-active{% endif %}"
+      data-brand-visibility="hidden"
+      hx-get="/internal/admin/products/brands"
+      hx-target="#admin-products-tab-panel"
+      hx-include="#admin-products-brands-filters"
+      hx-swap="innerHTML"
+      hx-on:htmx:config-request="adminProductsBeforeBrandsVisibilityRequest(event, 'hidden')"
+      hx-on:htmx:before-request="adminProductsBrandsPillActivate(this)"
+    >
+      Скрыто
+      <span class="admin-filter-pill__count">{{ brand_summary.hidden_brands }}</span>
+    </button>
+  </div>
+  <div class="products-toolbar__meta">
+    <span class="products-toolbar__counts">
+      {% if brand_rows %}На странице: {{ brand_rows | length }} · брендов: {{ brand_total }}{% else %}Брендов: {{ brand_total }}{% endif %}
+    </span>
+  </div>
+</div>
+{% if brand_rows %}
+<div class="products-list-head products-brands-list-head">
+  <span class="products-brands-list-head__brand">Бренд</span>
+  <span class="products-brands-list-head__count">Итого {{ brand_products_total }}</span>
+  <span class="products-brands-list-head__visible">На витрине</span>
+</div>
+<div class="split__scroll admin-orders-list-col products-list products-brands-list" data-list>
+  {% for row in brand_rows %}
+  <div class="products-brands-row lrow">
+    <span class="products-brands-row__brand">{{ row.brand }}</span>
+    <span class="products-brands-row__count mono">{{ row.product_count }}</span>
+    <span class="products-brands-row__visible">
+      <form
+        class="products-brands-toggle-form"
+        hx-post="/internal/admin/products/brands/toggle"
+        hx-target="#admin-products-tab-panel"
+        hx-swap="innerHTML"
+        hx-trigger="change from:input[type=checkbox]"
+        hx-on::after-request="adminProductsAfterBrandToggle(event)"
+      >
+        <input type="hidden" name="brand" value="{{ row.brand }}" />
+        {% if search_q %}<input type="hidden" name="q" value="{{ search_q }}" />{% endif %}
+        {% if brand_visibility != 'all' %}<input type="hidden" name="visibility" value="{{ brand_visibility }}" />{% endif %}
+        {% if page > 1 %}<input type="hidden" name="page" value="{{ page }}" />{% endif %}
+        <label class="check products-row__vitrina-check products-brands-check">
+          <input
+            type="checkbox"
+            name="visible"
+            value="true"
+            {% if row.storefront_visible %}checked{% endif %}
+          />
+          <span class="products-brands-check__label">{% if row.storefront_visible %}Да{% else %}Нет{% endif %}</span>
+        </label>
+      </form>
+    </span>
+  </div>
+  {% endfor %}
+  {% include "site/admin/partials/_brands_pagination.html" %}
+</div>
+{% else %}
+<div class="products-list-empty empty muted">
+  {% if search_q %}
+  По запросу «{{ search_q }}» ничего не найдено
+  {% elif brand_visibility == 'hidden' %}
+  Скрытых брендов нет
+  {% elif brand_visibility == 'visible' %}
+  Брендов на витрине не найдено
+  {% else %}
+  Брендов не найдено
+  {% endif %}
+</div>
+{% endif %}

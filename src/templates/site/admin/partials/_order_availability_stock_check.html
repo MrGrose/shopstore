@@ -1,0 +1,136 @@
+{% macro availability_product_link(row) %}
+<a href="{{ row.admin_product_url }}" class="orders-availability-stock__product-link">
+  <span class="mono orders-availability-stock__product-id">#{{ row.product_id }}</span>
+  {{ row.admin_product_name or row.product_title }}
+</a>
+{% endmacro %}
+
+{% macro availability_supplier_link(row) %}
+{% if row.supplier_product_url %}
+<a
+  href="{{ row.supplier_product_url }}"
+  class="admin-btn-pill admin-btn-pill--ghost orders-availability-stock__supplier-link"
+  target="_blank"
+  rel="noopener noreferrer"
+>
+  Открыть товар на сайте поставщика
+</a>
+{% endif %}
+{% endmacro %}
+
+{% macro availability_supplier_check(row) %}
+{% if row.supplier_check %}
+<div class="orders-availability-stock__supplier-check">
+  {% set supplier_html_issue = row.supplier_check.html_validation or '' %}
+  {% set supplier_challenge = row.supplier_check.challenge or '' %}
+  {% set login_issue = supplier_challenge == 'login' or supplier_html_issue == 'login' %}
+  {% if supplier_html_issue or supplier_challenge %}
+  {% if '500' in supplier_html_issue or supplier_challenge == 'server_error' %}
+  <p class="orders-availability-stock__supplier-warning">
+    TP вернул ошибку сервера, еще раз нажмите «Автопроверка».
+  </p>
+  {% elif login_issue and not row.supplier_check.found %}
+  <p class="orders-availability-stock__supplier-warning">
+    Сессия TP недействительна — обновите storage state и нажмите «Автопроверка».
+  </p>
+  {% elif not login_issue %}
+  <p class="orders-availability-stock__supplier-warning">
+    Предупреждение автопроверки{% if supplier_html_issue %}: {{ supplier_html_issue }}{% endif %}{% if supplier_challenge %} · {{ supplier_challenge }}{% endif %}
+  </p>
+  {% endif %}
+  {% endif %}
+  <p class="orders-availability-stock__supplier-title">
+    <strong>Автопроверка TP:</strong> {{ row.supplier_check.status_text }}
+  </p>
+  {% if row.supplier_check.price_prefix_text %}
+  <p class="orders-availability-stock__supplier-price">
+    {{ row.supplier_check.price_prefix_text }}
+    {% if row.supplier_check.price_delta_text %}
+    ·
+    {% if row.supplier_check.price_delta_tone in ('higher', 'lower') %}
+    <span class="orders-availability-stock__price-delta">{{ row.supplier_check.price_delta_text }}</span>
+    {% else %}
+    <span>{{ row.supplier_check.price_delta_text }}</span>
+    {% endif %}
+    {% endif %}
+  </p>
+  {% endif %}
+</div>
+{% endif %}
+{% endmacro %}
+
+{% macro availability_stock_meta(row) %}
+<div class="orders-availability-stock__meta">
+  <p class="orders-field__hint orders-availability-stock__stock">
+    {% if row.inventory is not none %}Остаток: {{ row.inventory }} шт.{% endif %}
+    {% if row.available is not none %}
+    {% if row.inventory is not none %} · {% endif %}доступно: {{ row.available }}
+    {% endif %}
+    · в заказе: {{ row.quantity }} шт.
+  </p>
+  <div class="orders-availability-stock__storefront">
+    {% set variant_on_storefront = row.variant_available is none or row.variant_available %}
+    {% set on_storefront = row.is_active and variant_on_storefront %}
+    {% if on_storefront %}
+    <span class="orders-pill orders-pill--completed">На витрине</span>
+    {% else %}
+    <span class="orders-pill orders-pill--storefront-removed">Снят с витрины</span>
+    {% endif %}
+    {{ availability_supplier_link(row) }}
+  </div>
+</div>
+{% endmacro %}
+
+{% macro availability_item_decision(row) %}
+<div class="orders-availability-stock__decision">
+  <label class="orders-check">
+    <input
+      type="radio"
+      name="availability_item_{{ row.order_item_id }}_decision"
+      value="confirmed"
+      {% if availability_form_id %}form="{{ availability_form_id }}"{% endif %}
+      checked
+    />
+    <span>Наличие у поставщика подтверждено</span>
+  </label>
+  <label class="orders-check">
+    <input
+      type="radio"
+      name="availability_item_{{ row.order_item_id }}_decision"
+      value="reject"
+      {% if availability_form_id %}form="{{ availability_form_id }}"{% endif %}
+    />
+    <span>Товара нет у поставщика — удалить из заказа</span>
+  </label>
+</div>
+{% endmacro %}
+
+{% if availability_stock_rows %}
+<div class="orders-availability-stock">
+  <p class="orders-field__label">Товары для проверки остатка:</p>
+  {% if availability_stock_rows | length == 1 %}
+  {% set row = availability_stock_rows[0] %}
+  <div class="orders-availability-stock__single">
+    <p class="orders-availability-stock__title">
+      {{ availability_product_link(row) }}
+    </p>
+    {{ availability_stock_meta(row) }}
+    {% if show_availability_decisions | default(true) %}
+    {{ availability_item_decision(row) }}
+    {% endif %}
+  </div>
+  {% else %}
+  <ul class="orders-availability-stock__list">
+    {% for row in availability_stock_rows %}
+    <li class="orders-availability-stock__item">
+      {{ availability_product_link(row) }}
+      {{ availability_stock_meta(row) }}
+      {% if show_availability_decisions | default(true) %}
+      {{ availability_item_decision(row) }}
+      {% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+</div>
+{% endif %}

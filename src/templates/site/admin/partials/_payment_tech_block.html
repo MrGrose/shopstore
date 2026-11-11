@@ -1,0 +1,60 @@
+{% macro render_payment_tech_block(payment_tech) %}
+{% set pt = payment_tech if payment_tech is defined else {} %}
+<details class="orders-payment-tech orders-payment-info">
+  <summary class="orders-payment-tech__summary">Тех. данные оплаты</summary>
+  <div class="orders-payment-tech__body">
+    <div class="orders-payment-tech__line">
+      Состояние: <span class="mono">{{ pt.state_label or pt.state or '—' }}</span>
+      {% if pt.state and pt.state_label and pt.state != pt.state_label %}
+      <span class="mono">({{ pt.state }})</span>
+      {% endif %}
+    </div>
+    <div class="orders-payment-tech__line">
+      Провайдер: <span class="mono">{{ pt.provider or '—' }}</span>
+    </div>
+    <div class="orders-payment-tech__line">
+      Способ оплаты: <span class="mono">{{ pt.method or '—' }}</span>
+    </div>
+    <div class="orders-payment-tech__line">
+      SBP order ID: <span class="mono">{{ pt.order_id or '—' }}</span>
+    </div>
+    <div class="orders-payment-tech__line">
+      Внешний order ID: <span class="mono">{{ pt.external_order_id or '—' }}</span>
+    </div>
+    <div class="orders-payment-tech__line">
+      Статус провайдера: <span class="mono">{{ pt.status or '—' }}</span>
+    </div>
+    <div class="orders-payment-tech__line">
+      QR ID: <span class="mono">{{ pt.qr_id or '—' }}</span>
+    </div>
+    <div class="orders-payment-tech__line">
+      Оплачено: <span class="mono">{{ pt.paid_at or '—' }}</span>
+    </div>
+    <div class="orders-payment-tech__line">
+      Оплатить до: <span class="mono">{{ pt.due_at or '—' }}</span>
+    </div>
+    <div class="orders-payment-tech__line">
+      Последний callback: <span class="mono">{{ pt.last_callback_at or '—' }}</span>
+    </div>
+    <div class="orders-payment-tech__line">
+      Оплата разрешена: <span class="mono">{{ pt.allowed or '—' }}</span>
+    </div>
+    <div class="orders-payment-tech__line">
+      Шлюз SBP: <span class="mono">{{ pt.gateway_enabled or '—' }}</span>
+    </div>
+    <div class="orders-payment-tech__line">
+      Попытки: <span class="mono">{{ pt.attempts or '—' }}</span>
+    </div>
+    {% if pt.cancellation_reason %}
+    <div class="orders-payment-tech__line">
+      Причина отмены: <span class="mono">{{ pt.cancellation_reason }}</span>
+    </div>
+    {% endif %}
+    {% if pt.init_state %}
+    <div class="orders-payment-tech__line">
+      init_state: <span class="mono">{{ pt.init_state }}</span>
+    </div>
+    {% endif %}
+  </div>
+</details>
+{% endmacro %}

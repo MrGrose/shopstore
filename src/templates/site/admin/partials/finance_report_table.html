@@ -1,0 +1,46 @@
+<table class="tbl finance-report">
+  <thead>
+    <tr>
+      <th>Период</th>
+      <th class="right" title="Количество выкупленных заказов за период">Заказы</th>
+      <th class="right" title="Количество товаров (шт.) в выкупленных заказах">Товары</th>
+      <th class="right">Оборот</th>
+      <th class="right">Себестоимость</th>
+      <th class="right">Доставка</th>
+      <th class="right">ВП</th>
+      <th class="right">ЧП</th>
+      <th class="right">Компенсация</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for row in report.rows %}
+    {% set period_href = "/internal/admin/finance/period?" ~ admin_finance_period_query(paid_from=row.paid_date_from.isoformat(), paid_to=row.paid_date_to.isoformat(), preset=preset or none, date_from=date_from or none, date_to=date_to or none, group=group) %}
+    <tr>
+      <td class="finance-report__period">
+        <a class="finance-report__link" href="{{ period_href }}" title="Разбор периода">{{ row.label }}</a>
+      </td>
+      <td class="right num">{{ format_finance_count(row.orders_count) }}</td>
+      <td class="right num">{{ format_finance_count(row.items_count) }}</td>
+      <td class="right num">{{ format_finance_rub(row.turnover, with_symbol=False) }}</td>
+      <td class="right num">{{ format_finance_rub(row.cogs_rub, with_symbol=False) }}</td>
+      <td class="right num">{{ format_finance_rub(row.delivery_rub, with_symbol=False) }}</td>
+      <td class="right num{% if row.gross_profit > 0 %} finance-report__profit{% endif %}">{{ format_finance_rub(row.gross_profit, with_symbol=False) }}</td>
+      <td class="right num{% if row.net_profit > 0 %} finance-report__profit{% endif %}">{{ format_finance_rub(row.net_profit, with_symbol=False) }}</td>
+      <td class="right num">{{ format_finance_rub(row.compensation, with_symbol=False) }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+  <tfoot>
+    <tr class="finance-report__totals">
+      <th>Итого</th>
+      <th class="right num">{{ format_finance_count(report.totals.orders_count) }}</th>
+      <th class="right num">{{ format_finance_count(report.totals.items_count) }}</th>
+      <th class="right num">{{ format_finance_rub(report.totals.turnover, with_symbol=False) }}</th>
+      <th class="right num">{{ format_finance_rub(report.totals.cogs_rub, with_symbol=False) }}</th>
+      <th class="right num">{{ format_finance_rub(report.totals.delivery_rub, with_symbol=False) }}</th>
+      <th class="right num{% if report.totals.gross_profit > 0 %} finance-report__profit{% endif %}">{{ format_finance_rub(report.totals.gross_profit, with_symbol=False) }}</th>
+      <th class="right num{% if report.totals.net_profit > 0 %} finance-report__profit{% endif %}">{{ format_finance_rub(report.totals.net_profit, with_symbol=False) }}</th>
+      <th class="right num">{{ format_finance_rub(report.totals.compensation, with_symbol=False) }}</th>
+    </tr>
+  </tfoot>
+</table>

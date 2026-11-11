@@ -1,0 +1,68 @@
+{% set state = state | default(none) %}
+{% set bulk_preview = bulk_preview | default({'total': 0, 'active': 0, 'inactive': 0}) %}
+<form id="admin-products-bulk-filters" class="hidden">
+  <input type="hidden" name="view" id="admin-products-bulk-view" value="{{ view | default('in_stock') }}" />
+  <input type="hidden" name="top" id="admin-products-bulk-top" value="{{ state.selected_top if state else 'All' }}" />
+  <input type="hidden" name="category" id="admin-products-bulk-category" value="{{ state.selected_category if state and state.selected_category else '' }}" />
+</form>
+<form id="admin-products-bulk-form" class="admin-products-bulk-form" method="post" action="/internal/admin/products/bulk">
+  <input type="hidden" name="return_view" value="{{ view | default('in_stock') }}" />
+  <input type="hidden" name="return_top" value="{{ state.selected_top if state else 'All' }}" />
+  <input type="hidden" name="return_page" value="1" />
+  <input type="hidden" name="return_tab" value="bulk" />
+  <div class="products-toolbar">
+    <div class="products-toolbar__row">
+      <span class="products-toolbar__select-all">Массово</span>
+      <select
+        id="admin-products-group-top-select"
+        name="group_top"
+        class="select products-toolbar__select admin-products-group-top-select"
+        aria-label="Вид спорта для массового действия"
+        hx-get="/internal/admin/products/bulk"
+        hx-target="#admin-products-tab-panel"
+        hx-include="#admin-products-bulk-filters"
+        hx-swap="innerHTML"
+        hx-trigger="change"
+        hx-on:htmx:config-request="adminProductsBeforeBulkTopChange(event)"
+      >
+        <option value="All" {% if state and state.selected_top == 'All' %}selected{% endif %}>Все виды</option>
+        {% for t in catalog_top_order %}
+        <option value="{{ t }}" {% if state and state.selected_top == t %}selected{% endif %}>{{ translate_sport_type(t) }}</option>
+        {% endfor %}
+      </select>
+      {% if state and state.categories %}
+      <select
+        id="admin-products-group-category-select"
+        name="group_category"
+        class="select products-toolbar__select admin-products-group-category-select"
+        aria-label="Категория для массового действия"
+        hx-get="/internal/admin/products/bulk"
+        hx-target="#admin-products-tab-panel"
+        hx-include="#admin-products-bulk-filters"
+        hx-swap="innerHTML"
+        hx-trigger="change"
+        hx-on:htmx:config-request="adminProductsBeforeBulkCategoryChange(event)"
+      >
+        <option value="" {% if not state.selected_category %}selected{% endif %}>Все категории</option>
+        {% for c in state.categories %}
+        <option value="{{ c }}" {% if state.selected_category == c %}selected{% endif %}>{{ translate_category_l2(c) }}</option>
+        {% endfor %}
+      </select>
+      {% endif %}
+      <button type="button" id="admin-products-group-activate-btn" class="btn btn--sm btn--primary products-bulk-action-btn">На витрину</button>
+      <button type="button" id="admin-products-group-deactivate-btn" class="btn btn--sm btn--ghost products-bulk-action-btn">Снять</button>
+    </div>
+    <div class="products-toolbar__meta">
+      <span class="products-toolbar__counts">
+        В выборке: {{ bulk_preview.total }} · на витрине: {{ bulk_preview.active }} · снято: {{ bulk_preview.inactive }}
+      </span>
+    </div>
+  </div>
+  <div class="split__scroll products-list products-bulk-hint">
+    <div class="products-list-empty">
+      {{ admin_icon('box', 'ico products-empty__icon') }}
+      <p>«На витрину» выставит <strong>{{ bulk_preview.inactive }}</strong> товаров, «Снять» — <strong>{{ bulk_preview.active }}</strong></p>
+      <p class="small muted">Фильтр по виду спорта и категории; затронуты все товары группы, не только текущая страница списка</p>
+    </div>
+  </div>
+</form>

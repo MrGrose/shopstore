@@ -1,0 +1,6 @@
+{% for row in rows %}
+<div class="row row--between">
+  <span class="row" style="gap:8px;">{{ admin_icon(row.icon, 'ico--sm') }}{{ row.label }}</span>
+  <span class="pill {% if row.status == 'ok' %}pill--ok{% elif row.status == 'warn' %}pill--warn{% else %}pill--err{% endif %}">{% if row.status == 'ok' %}<span class="pulse"></span>{% endif %}{{ row.detail }}</span>
+</div>
+{% endfor %}

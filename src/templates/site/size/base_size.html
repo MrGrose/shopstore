@@ -1,0 +1,33 @@
+<section class="storefront-legal-doc storefront-size-guide">
+  <p class="legal-doc-lead">
+    Соответствие размеров EU, UK, US и длины стопы в сантиметрах для бренда {{ brand }}.
+  </p>
+
+  {% for audience in audiences %}
+    <div class="size-guide-section">
+      <h2>{{ audience_labels[audience] }}</h2>
+      <div class="legal-doc-table-wrap">
+        <table class="legal-doc-table">
+          <thead>
+            <tr>
+              <th scope="col">EU</th>
+              <th scope="col">UK</th>
+              <th scope="col">US</th>
+              <th scope="col">Стопа, см</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in sections[audience] %}
+              <tr>
+                <td>{{ row.eu }}</td>
+                <td>{{ row.uk or "—" }}</td>
+                <td>{{ row.us or "—" }}</td>
+                <td>{{ row.foot_length_cm_label }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  {% endfor %}
+</section>

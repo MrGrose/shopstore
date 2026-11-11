@@ -1,0 +1,51 @@
+<section class="margin-rule-detail">
+  <div class="margin-rule-detail__head">
+    <div>
+      <h2 class="margin-rule-detail__title">{{ title }}</h2>
+      <p class="margin-rule-detail__sub">Пересчёт только текущих товаров витрины</p>
+    </div>
+  </div>
+  <form class="margin-rule-form" method="post" action="/internal/admin/margins/{{ rule.id }}">
+    <input type="hidden" name="sport" value="{{ selected_sport }}" />
+    <input type="hidden" name="selected" value="{{ rule.subcategory_slug }}" />
+    <label class="margin-rule-form__field">
+      <span>Наценка, %</span>
+      <input class="input" name="margin_percent" inputmode="decimal" value="{{ rule.margin_percent }}" required />
+    </label>
+    <button type="submit" class="admin-btn-pill admin-btn-pill--secondary">Сохранить</button>
+    <button type="submit" name="recalculate" value="1" class="admin-btn-pill">
+      Сохранить и пересчитать {{ storefront_count }} товаров
+    </button>
+  </form>
+  {% with job=active_job or last_job %}
+    {% include "site/admin/partials/margin_job_status.html" %}
+  {% endwith %}
+  <details class="margin-history">
+    <summary class="margin-history__summary">
+      <span class="margin-history__label">
+        {{ admin_icon("search", "margin-history__icon") }}
+        История наценки
+      </span>
+      <span class="margin-history__meta">
+        {{ history | length }}
+        {{ admin_icon("chevron-right", "margin-history__chevron") }}
+      </span>
+    </summary>
+    <div class="margin-history__list">
+      {% for entry in history %}
+      <div class="margin-history__row">
+        <time datetime="{{ entry.created_at.isoformat() }}">{{ format_datetime_msk(entry.created_at, with_tz_label=False) }}</time>
+        <span class="margin-history__change">
+          {% if entry.previous_margin_percent is none %}
+            {{ entry.margin_percent }}%
+          {% else %}
+            {{ entry.previous_margin_percent }}% → <strong>{{ entry.margin_percent }}%</strong>
+          {% endif %}
+        </span>
+      </div>
+      {% else %}
+      <div class="margin-history__empty">Изменений пока нет</div>
+      {% endfor %}
+    </div>
+  </details>
+</section>

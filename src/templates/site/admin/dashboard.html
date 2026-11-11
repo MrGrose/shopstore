@@ -1,0 +1,78 @@
+{% extends "site/admin/base.html" %}
+{% from "site/admin/partials/_admin_ui_macros.html" import admin_page_head, admin_btn_pill %}
+{% block admin_page %}dashboard{% endblock %}
+{% block title %}Дашборд — Admin{% endblock %}
+{% block content %}
+<div class="admin-page">
+{% call admin_page_head('Дашборд', sub='Обзор магазина · загружено при открытии страницы') %}
+  <button
+    type="button"
+    id="dashboard-refresh"
+    class="admin-btn-pill admin-btn-pill--secondary admin-btn-pill--sm"
+    hx-get="/internal/admin/dashboard/metrics"
+    hx-target="#dashboard-metrics"
+    hx-swap="innerHTML"
+    hx-on:click="htmx.trigger('body', 'dashboard-refresh')"
+  >
+    <span class="btn__icon" aria-hidden="true">{{ admin_icon('refresh', 'ico--sm') }}</span>
+    <span>Обновить</span>
+  </button>
+  {{ admin_btn_pill('Открыть заказы', href='/internal/admin/orders', size='sm') }}
+{% endcall %}
+
+{% include "site/admin/partials/_flash.html" %}
+
+<section id="dashboard-metrics" class="metrics" aria-label="Ключевые метрики">
+  {% include "site/admin/partials/dashboard_metrics.html" %}
+</section>
+
+<div class="grid-2" style="margin-top:16px;">
+  <section class="card">
+    <div class="card__head">
+      <span class="card__title">Последние заказы</span>
+      <a class="admin-btn-pill admin-btn-pill--ghost admin-btn-pill--sm" href="/internal/admin/orders">Все заказы</a>
+    </div>
+    <div class="table-wrap">
+      <table class="tbl">
+        <thead>
+          <tr><th>Заказ</th><th>Клиент</th><th>Статус</th><th class="right">Сумма</th></tr>
+        </thead>
+        <tbody
+          id="dashboard-recent-orders"
+          hx-get="/internal/admin/dashboard/recent-orders"
+          hx-trigger="dashboard-refresh from:body"
+          hx-swap="innerHTML"
+        >
+          {% include "site/admin/partials/dashboard_recent_orders.html" %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <div class="stack">
+    <section class="card">
+      <div class="card__head"><span class="card__title">Состояние системы</span></div>
+      <div
+        id="dashboard-health"
+        class="card__body stack--sm"
+        hx-get="/internal/admin/dashboard/health"
+        hx-trigger="dashboard-refresh from:body"
+        hx-swap="innerHTML"
+      >
+        {% include "site/admin/partials/dashboard_health.html" %}
+      </div>
+    </section>
+    <section class="card">
+      <div class="card__head"><span class="card__title">Парсинг каталога</span></div>
+      <div class="card__body stack--sm"
+           id="dashboard-parsing-mini"
+           hx-get="/internal/admin/dashboard/parsing"
+           hx-trigger="load, every 10s, dashboard-refresh from:body"
+           hx-swap="innerHTML">
+        {% include "site/admin/partials/dashboard_parsing_mini.html" %}
+      </div>
+    </section>
+  </div>
+</div>
+</div>
+{% endblock %}

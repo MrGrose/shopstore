@@ -1,0 +1,332 @@
+{% from "site/admin/partials/_orders_notify_checkbox.html" import render_orders_notify_checkbox %}
+<section class="order-supplier-orders" id="order-supplier-orders" aria-label="Сборка посылок">
+  <h3 class="order-supplier-orders__title">Сборка посылок</h3>
+  {% set packing = packing if packing is defined else {} %}
+  {% set recommendation = packing_recommendation if packing_recommendation is defined else none %}
+  {% set packing_blocked = packing.get('packing_block_reason') %}
+  {% set preview_url = packing_preview_url if packing_preview_url is defined else '' %}
+  {% set manual_url = packing_manual_url if packing_manual_url is defined else '' %}
+  {% set result_url = packing_result_url if packing_result_url is defined else '' %}
+  {% set is_manual = packing_manual if packing_manual is defined else false %}
+  {% set add_to = packing_add_to if packing_add_to is defined else none %}
+  {% set add_urls = packing_add_urls if packing_add_urls is defined else {} %}
+  {% set has_parcels = packing.get('actual_count', 0) > 0 %}
+  {% set close_add_url = manual_url if is_manual else result_url %}
+  <div class="order-supplier-orders__summary">
+    <div>Товаров: <span class="mono">{{ packing.get('ordered_qty_total', 0) }}</span></div>
+    <div>Распределено: <span class="mono">{{ packing.get('allocated_qty_total', 0) }} / {{ packing.get('ordered_qty_total', 0) }}</span></div>
+    <div>Посылок: <span class="mono">{{ packing.get('actual_count', 0) }}</span></div>
+    <div>Товары: <span class="mono">{{ packing.get('goods_eur_total', '—') }} €</span></div>
+    {% if packing.get('placeable_count') %}
+    <div>Оформлено: <span class="mono">{{ packing.get('placed_count', 0) }} / {{ packing.get('placeable_count') }}</span></div>
+    {% endif %}
+  </div>
+  {% if packing.get('fully_allocated') %}
+  <p class="order-supplier-orders__alloc order-supplier-orders__alloc--ok">✓ Все товары распределены</p>
+  {% elif packing.get('leftover_qty') %}
+  <p class="order-supplier-orders__alloc order-supplier-orders__alloc--warn">⚠ Не распределено: {{ packing.get('leftover_qty') }} шт.</p>
+  {% endif %}
+  {% if packing.get('assembly_complete') %}
+  <p class="order-supplier-orders__alloc order-supplier-orders__alloc--ok">✓ Сборка завершена</p>
+  {% endif %}
+  {% if packing.get('placeable_count') and not packing.get('assembly_complete') %}
+  <p class="order-supplier-orders__alloc">Собрано: {{ packing.get('placed_count', 0) }} / {{ packing.get('placeable_count') }} посылки</p>
+  {% endif %}
+  {% if packing.get('paid_supplier_order_count') is not none %}
+  <p class="order-supplier-orders__paid">Оплачено посылок: <span class="mono">{{ packing.get('paid_supplier_order_count') }}</span></p>
+  {% endif %}
+  {% if packing.get('supplier_shipping_eur') is not none %}
+  <p class="order-supplier-orders__ship-note">Доставка поставщика: {{ packing.get('supplier_shipping_eur') }} € — не входит в лимит {{ packing.get('goods_cap_eur') }} €</p>
+  {% endif %}
+  {% if not packing_blocked %}
+  <div class="order-supplier-orders__modes">
+    {% if has_parcels %}
+      {% if preview_url %}
+      <a class="admin-btn-pill{% if recommendation %} is-active{% endif %}" href="{{ preview_url }}">✨ Пересчитать рекомендацию</a>
+      {% endif %}
+      {% if packing.get('can_create') and not recommendation %}
+      <form method="post" action="/internal/admin/orders/{{ order.id }}/supplier-orders" class="order-supplier-orders__create">
+        {% include "site/admin/partials/_orders_return_fields.html" %}
+        <button type="submit" class="admin-btn-pill">+ Добавить посылку</button>
+      </form>
+      {% endif %}
+    {% else %}
+      {% if preview_url %}
+      <a class="admin-btn-pill{% if recommendation %} is-active{% endif %}" href="{{ preview_url }}">✨ Рекомендовать сборку</a>
+      {% endif %}
+      {% if manual_url %}
+      <a class="admin-btn-pill{% if is_manual and not recommendation %} is-active{% endif %}" href="{{ manual_url }}">+ Ручная сборка</a>
+      {% endif %}
+    {% endif %}
+  </div>
+  {% endif %}
+  {% if packing.get('next_action_hint') and not recommendation and not has_parcels %}
+  <p class="order-supplier-orders__hint">{{ packing.get('next_action_hint') }}</p>
+  {% endif %}
+  {% if packing_blocked %}
+  <p class="orders-field__hint">{{ packing_blocked }}</p>
+  {% endif %}
+  {% if recommendation %}
+  <div class="order-supplier-orders__preview" role="region" aria-label="Рекомендация сборки">
+    <h4 class="order-supplier-orders__preview-title">✨ Рекомендация сборки</h4>
+    <p class="order-supplier-orders__preview-summary">
+      Оптимально: <span class="mono">{{ recommendation.parcels|length }}</span> посылок
+      · Товары: <span class="mono">{{ recommendation.goods_eur }} €</span>
+      · Лимит: <span class="mono">{{ recommendation.goods_cap_eur }} €</span> / посылка
+    </p>
+    {% if recommendation.replaces_drafts %}
+    <p class="orders-field__hint">Текущие черновики посылок будут заменены.</p>
+    {% endif %}
+    {% for parcel in recommendation.parcels %}
+    <article class="order-supplier-orders__preview-parcel">
+      <header class="order-supplier-orders__fill-row">
+        <h5 class="order-supplier-orders__card-title">Посылка {{ parcel.seq }}</h5>
+        <span class="mono">{{ parcel.goods_eur }} € / {{ parcel.goods_cap_eur }} €</span>
+      </header>
+      <div
+        class="progress"
+        role="meter"
+        aria-label="Заполненность посылки {{ parcel.seq }}"
+        aria-valuemin="0"
+        aria-valuemax="100"
+        aria-valuenow="{{ parcel.goods_fill_percent }}"
+      >
+        <div class="progress__bar" style="width: {{ parcel.goods_fill_percent }}%"></div>
+      </div>
+      <p class="order-supplier-orders__fill-rest">Осталось: <span class="mono">{{ parcel.goods_remaining_eur }} €</span> · {{ parcel.goods_fill_percent }}%</p>
+      <ul class="order-supplier-orders__preview-items">
+        {% for item in parcel.items %}
+        <li>
+          <span>{{ item.title }}</span>
+          <span class="mono">{{ item.quantity }} × {{ item.unit_supplier_eur }} €</span>
+        </li>
+        {% endfor %}
+      </ul>
+    </article>
+    {% endfor %}
+    {% if recommendation.paid_n_blocked %}
+    <div class="order-supplier-orders__warning" role="alert">
+      <p>⚠ Нельзя применить рекомендацию</p>
+      <p>{{ recommendation.block_reason }}</p>
+      <p>Измените состав заказа или используйте ручную сборку.</p>
+    </div>
+    {% elif recommendation.block_reason %}
+    <p class="orders-field__hint">{{ recommendation.block_reason }}</p>
+    {% endif %}
+    <div class="order-supplier-orders__preview-actions">
+      {% if recommendation.can_apply %}
+      <form method="post" action="/internal/admin/orders/{{ order.id }}/supplier-orders/recommend">
+        {% include "site/admin/partials/_orders_return_fields.html" %}
+        <button type="submit" class="admin-btn-pill">Применить рекомендацию</button>
+      </form>
+      {% endif %}
+      {% if result_url %}
+      <a class="admin-btn-pill" href="{{ result_url }}">{% if recommendation.paid_n_blocked %}Закрыть{% else %}Отмена{% endif %}</a>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+  {% if not recommendation %}
+  {% if is_manual %}
+  <div class="order-supplier-orders__available" role="region" aria-label="Доступные товары">
+    <h4 class="order-supplier-orders__available-title">Доступные товары</h4>
+    {% for row in packing.get('remaining_rows') or [] %}
+      {% if row.remaining_qty > 0 %}
+      <div class="order-supplier-orders__available-row">
+        <div>
+          <p class="order-supplier-orders__line-title">{{ row.title or ('Товар #' ~ row.order_item_id) }}</p>
+          <p class="order-supplier-orders__line-meta">Заказано: {{ row.ordered_qty }}</p>
+          <p class="order-supplier-orders__line-meta">Распределено: {{ row.allocated_qty }}</p>
+          <p class="order-supplier-orders__line-meta">Осталось: {{ row.remaining_qty }}</p>
+        </div>
+        {% if packing.get('manual_target_so_id') %}
+        <form method="post" action="/internal/admin/orders/{{ order.id }}/supplier-orders/{{ packing.get('manual_target_so_id') }}/lines">
+          {% include "site/admin/partials/_orders_return_fields.html" %}
+          {% for so in supplier_orders or [] %}
+            {% if so.id == packing.get('manual_target_so_id') %}
+              {% for existing in so.line_controls %}
+                {% if existing.order_item_id == row.order_item_id %}
+                <input type="hidden" name="line_{{ existing.order_item_id }}_qty" value="{{ existing.in_parcel_qty + 1 }}" />
+                {% elif existing.in_parcel_qty > 0 %}
+                <input type="hidden" name="line_{{ existing.order_item_id }}_qty" value="{{ existing.in_parcel_qty }}" />
+                {% endif %}
+              {% endfor %}
+            {% endif %}
+          {% endfor %}
+          <button type="submit" class="admin-btn-pill">Добавить</button>
+        </form>
+        {% endif %}
+      </div>
+      {% endif %}
+    {% endfor %}
+    {% if packing.get('can_create') and not has_parcels %}
+    <form method="post" action="/internal/admin/orders/{{ order.id }}/supplier-orders" class="order-supplier-orders__create">
+      {% include "site/admin/partials/_orders_return_fields.html" %}
+      <button type="submit" class="admin-btn-pill">+ Добавить посылку</button>
+    </form>
+    {% endif %}
+  </div>
+  {% endif %}
+  {% for so in supplier_orders or [] %}
+  <article class="order-supplier-orders__card">
+    <header class="order-supplier-orders__card-head">
+      <h4 class="order-supplier-orders__card-title">Посылка {{ so.seq }}</h4>
+      <span class="order-supplier-orders__status">{{ so.status_label }}</span>
+    </header>
+    {% if so.external_id %}
+    <p class="order-supplier-orders__tp"><span class="mono">{{ so.external_id }}</span></p>
+    {% endif %}
+    <div class="order-supplier-orders__fill">
+      <div class="order-supplier-orders__fill-row">
+        <span>Товары</span>
+        <span class="mono">{{ so.goods_eur }} € / {{ so.goods_cap_eur }} €</span>
+      </div>
+      <div
+        class="progress"
+        role="meter"
+        aria-label="Заполненность посылки {{ so.seq }}"
+        aria-valuemin="0"
+        aria-valuemax="100"
+        aria-valuenow="{{ so.goods_fill_percent }}"
+      >
+        <div class="progress__bar" style="width: {{ so.goods_fill_percent }}%"></div>
+      </div>
+      <p class="order-supplier-orders__fill-rest">Осталось: <span class="mono">{{ so.goods_remaining_eur }} €</span> · {{ so.goods_fill_percent }}%</p>
+    </div>
+    {% if so.is_draft %}
+    <form method="post" action="/internal/admin/orders/{{ order.id }}/supplier-orders/{{ so.id }}/lines">
+      {% include "site/admin/partials/_orders_return_fields.html" %}
+      {% for row in so.line_controls %}
+        {% if row.in_parcel_qty > 0 %}
+        <div class="order-supplier-orders__line">
+          <div class="order-supplier-orders__line-copy">
+            <label class="order-supplier-orders__line-title" for="so-{{ so.id }}-item-{{ row.order_item_id }}">{{ row.title or ('Товар #' ~ row.order_item_id) }}</label>
+            <p class="order-supplier-orders__line-price mono">{{ row.in_parcel_qty }} шт × {{ row.unit_supplier_eur }} €</p>
+            {% if row.capacity_hint %}
+            <p class="order-supplier-orders__line-fit">{{ row.capacity_hint }}</p>
+            <p class="order-supplier-orders__line-fit">Доступно: <span class="mono">{{ so.goods_remaining_eur }} €</span></p>
+            {% endif %}
+          </div>
+          <div class="order-supplier-orders__qty">
+            <div class="orders-qty-stepper orders-qty-stepper--compact">
+              <button type="button" class="orders-qty-stepper__btn" data-qty-minus aria-label="Меньше"{% if row.minus_disabled %} disabled{% endif %}>−</button>
+              <input
+                id="so-{{ so.id }}-item-{{ row.order_item_id }}"
+                class="orders-items-list__qty-input mono"
+                type="number"
+                min="0"
+                max="{{ row.max_qty }}"
+                name="line_{{ row.order_item_id }}_qty"
+                value="{{ row.in_parcel_qty }}"
+                aria-label="Количество в этой посылке, штук"
+              />
+              <button type="button" class="orders-qty-stepper__btn" data-qty-plus aria-label="Больше"{% if row.plus_disabled %} disabled{% endif %}>+</button>
+            </div>
+          </div>
+        </div>
+        {% endif %}
+      {% endfor %}
+      <button type="submit" class="admin-btn-pill">Сохранить состав</button>
+    </form>
+    {% if packing.get('leftover_qty') %}
+      {% if add_to == so.id %}
+      <div class="order-supplier-orders__add-item">
+        <p class="order-supplier-orders__lines-label">Доступные товары</p>
+        {% for row in so.line_controls %}
+          {% if row.in_parcel_qty == 0 and row.leftover_qty > 0 %}
+          <div class="order-supplier-orders__available-row">
+            <div>
+              <p class="order-supplier-orders__line-title">{{ row.title or ('Товар #' ~ row.order_item_id) }}</p>
+              <p class="order-supplier-orders__line-meta">Осталось {{ row.leftover_qty }}</p>
+              {% if row.capacity_hint %}
+              <p class="order-supplier-orders__line-fit">{{ row.capacity_hint }}</p>
+              {% endif %}
+            </div>
+            {% if not row.plus_disabled %}
+            <form method="post" action="/internal/admin/orders/{{ order.id }}/supplier-orders/{{ so.id }}/lines">
+              {% include "site/admin/partials/_orders_return_fields.html" %}
+              {% for existing in so.line_controls %}
+                {% if existing.in_parcel_qty > 0 %}
+                <input type="hidden" name="line_{{ existing.order_item_id }}_qty" value="{{ existing.in_parcel_qty }}" />
+                {% endif %}
+              {% endfor %}
+              <input type="hidden" name="line_{{ row.order_item_id }}_qty" value="1" />
+              <button type="submit" class="admin-btn-pill">Добавить</button>
+            </form>
+            {% endif %}
+          </div>
+          {% endif %}
+        {% endfor %}
+        {% if close_add_url %}
+        <a class="admin-btn-pill" href="{{ close_add_url }}">Закрыть</a>
+        {% endif %}
+      </div>
+      {% elif add_urls.get(so.id) %}
+      <p><a class="admin-btn-pill" href="{{ add_urls.get(so.id) }}">+ Добавить товар</a></p>
+      {% endif %}
+    {% endif %}
+    {% if not packing_blocked %}
+    <form method="post" action="/internal/admin/orders/{{ order.id }}/supplier-orders/{{ so.id }}/place" class="order-supplier-orders__place">
+      {% include "site/admin/partials/_orders_return_fields.html" %}
+      <div class="orders-field">
+        <label class="orders-field__label" for="so-{{ so.id }}-external-id">Номер у поставщика</label>
+        <input
+          id="so-{{ so.id }}-external-id"
+          class="orders-field__input mono"
+          type="text"
+          name="external_id"
+          required
+          maxlength="128"
+          placeholder="Номер заказа у поставщика"
+        />
+      </div>
+      {{ render_orders_notify_checkbox(
+        checked=true,
+        hint="Посылка №" ~ so.seq ~ " оформлена у поставщика",
+        channels=order_notify_channels if order_notify_channels is defined else (order.notification_channels or []),
+      ) }}
+      <div class="orders-field orders-status-message-field">
+        <label class="orders-field__label" for="so-{{ so.id }}-notify-message">Сообщение клиенту</label>
+        <textarea id="so-{{ so.id }}-notify-message" name="custom_message" class="orders-field__textarea" rows="3">{{ so.customer_notify_draft }}</textarea>
+      </div>
+      <button type="submit" class="admin-btn-pill">Оформить у поставщика</button>
+    </form>
+    {% endif %}
+    <form method="post" action="/internal/admin/orders/{{ order.id }}/supplier-orders/{{ so.id }}/delete" class="order-supplier-orders__delete">
+      {% include "site/admin/partials/_orders_return_fields.html" %}
+      <button type="submit" class="admin-btn-pill">Удалить черновик</button>
+    </form>
+    {% elif so.lines %}
+    <ul class="order-items-readonly">
+      {% for line in so.lines %}
+      <li>
+        {{ line.product_title or ('Позиция #' ~ line.order_item_id) }}
+        · {{ line.quantity }} шт × {{ line.unit_supplier_eur }} €
+      </li>
+      {% endfor %}
+    </ul>
+    <div class="order-supplier-orders__tg">
+      <span>Telegram клиенту</span>
+      <span>
+        {% if so.customer_notify_label == '✔✔' %}
+        <span class="order-supplier-orders__tg-sent">&#10004;&#10004;</span>
+        {% else %}
+        {{ so.customer_notify_label }}
+        {% endif %}
+      </span>
+    </div>
+    {% if so.can_notify %}
+    <form method="post" action="/internal/admin/orders/{{ order.id }}/supplier-orders/{{ so.id }}/notify" class="orders-form-stack order-supplier-orders__notify">
+      {% include "site/admin/partials/_orders_return_fields.html" %}
+      <div class="orders-field orders-status-message-field">
+        <label class="orders-field__label" for="so-{{ so.id }}-catchup-message">Сообщение клиенту</label>
+        <textarea id="so-{{ so.id }}-catchup-message" name="custom_message" class="orders-field__textarea" rows="3">{{ so.customer_notify_draft }}</textarea>
+      </div>
+      <button type="submit" class="admin-btn-pill">Уведомить</button>
+    </form>
+    {% endif %}
+    {% endif %}
+  </article>
+  {% endfor %}
+  {% endif %}
+</section>

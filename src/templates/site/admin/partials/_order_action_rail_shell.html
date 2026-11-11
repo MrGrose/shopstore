@@ -1,0 +1,65 @@
+{% set rail_active = rail.active_step | default('terminal') %}
+{% set show_now = rail_active != 'terminal' and not order_is_terminal %}
+
+{% if show_now %}
+{% set now_step = rail_steps.get(rail_active, {}) %}
+<section class="ac-card orders-action-rail-now" id="order-action-now{% if rail_active == 'assembly' %}-assembly{% elif rail_active == 'payment' %}-payment{% elif rail_active == 'composition' %}-items{% endif %}" aria-labelledby="order-action-now-title">
+  <header class="orders-action-rail-now__head">
+    <span class="orders-action-rail-now__eyebrow">Сейчас</span>
+    <h2 class="orders-action-rail-now__title" id="order-action-now-title">
+      <span class="orders-action-rail-now__step-num">{{ now_step.step_number }}</span>
+      {{ now_step.title }}
+    </h2>
+    {% if rail.callout %}
+    <p class="orders-action-rail-now__callout" role="status">{{ rail.callout }}</p>
+    {% endif %}
+    {% if now_step.waiting and now_step.waiting_message %}
+    <p class="orders-action-rail-now__waiting">{{ now_step.waiting_message }}</p>
+    {% endif %}
+  </header>
+  <div class="orders-action-rail-now__body">
+    {% with rail_step_id=rail_active, rail_step_mode='now' %}
+    {% include "site/admin/partials/_order_action_rail_step_body.html" %}
+    {% endwith %}
+  </div>
+</section>
+{% endif %}
+
+<section class="orders-action-rail-queue" aria-label="Цепочка заказа">
+  <h3 class="orders-action-rail-queue__heading">Цепочка заказа</h3>
+  <div class="orders-action-rail-queue__list">
+    {% for step_id in rail.flow_steps | default([]) %}
+    {% set step = rail_steps.get(step_id, {}) %}
+    {% if step_id == rail_active and show_now %}
+    {# rendered in «Сейчас» #}
+    {% elif step.state == 'locked' and not step.body_editable and not step.get('open') %}
+    <div class="orders-action-rail-queue__item orders-action-rail-queue__item--locked" data-rail-step="{{ step_id }}">
+      <div class="orders-action-rail-queue__summary orders-action-rail-queue__summary--static">
+        <span class="orders-action-rail-queue__num">{{ step.step_number }}</span>
+        <span class="orders-action-rail-queue__title">{{ step.title }}</span>
+        <span class="orders-action-rail-queue__meta">{{ step.queue_summary or 'Далее' }}</span>
+      </div>
+      {% if step.hint %}<p class="orders-action-rail-queue__hint">{{ step.hint }}</p>{% endif %}
+    </div>
+    {% elif step.state == 'done' or step.body_editable or step.get('open') %}
+    <details class="orders-action-rail-queue__item ac-card orders-action-rail-queue__item--{{ step.state }}{% if step.body_editable %} orders-action-rail-queue__item--secondary{% endif %}{% if step_id == 'delivery' and step.get('open') %} orders-action-rail-queue__item--monitoring{% endif %}" data-rail-step="{{ step_id }}"{% if step.get('open') %} open{% endif %}>
+      <summary class="orders-action-rail-queue__summary">
+        {% if step.state == 'done' %}
+        <span class="orders-action-rail-queue__num orders-action-rail-queue__num--done" aria-hidden="true">✓</span>
+        {% else %}
+        <span class="orders-action-rail-queue__num">{{ step.step_number }}</span>
+        {% endif %}
+        <span class="orders-action-rail-queue__title">{{ step.title }}</span>
+        <span class="orders-action-rail-queue__meta">{{ step.hint or step.queue_summary or ('Готово' if step.state == 'done' else 'Дополнительно') }}</span>
+        <span class="orders-detail-card__chevron" aria-hidden="true"></span>
+      </summary>
+      <div class="orders-action-rail-queue__body{% if step.body_editable %} orders-action-rail-queue__body--editable{% endif %}{% if step.state == 'done' and step_id != 'delivery' %} orders-action-rail-queue__body--readonly{% endif %}">
+        {% with rail_step_id=step_id, rail_step_mode='queue' %}
+        {% include "site/admin/partials/_order_action_rail_step_body.html" %}
+        {% endwith %}
+      </div>
+    </details>
+    {% endif %}
+    {% endfor %}
+  </div>
+</section>

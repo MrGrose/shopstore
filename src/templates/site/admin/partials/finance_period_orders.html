@@ -1,0 +1,114 @@
+{% for order in detail.orders %}
+<details class="finance-period-order card"{% if loop.first %} open{% endif %}>
+  <summary class="finance-period-order__head">
+    <div class="finance-period-order__title-row">
+      <span class="finance-period-order__title">Заказ #{{ order.order_id }}</span>
+      <span class="finance-period-order__meta muted">{{ order.paid_at_display or order.paid_date.strftime('%d.%m.%Y') }}</span>
+    </div>
+    <div class="finance-period-order__metrics mono">
+      <span>оборот {{ format_finance_rub(order.turnover) }}</span>
+      <span>комиссия {{ order.commission_percent }}%</span>
+      <span>ЧП {{ format_finance_rub(order.net_profit) }}</span>
+    </div>
+  </summary>
+
+  <div class="finance-period-order__body card__body">
+    <div class="finance-period-order__toolbar">
+      <a class="finance-period-order__link" href="/internal/admin/orders?{{ admin_orders_query(order_id=order.order_id) }}">Открыть заказ</a>
+      {% if order.missing_cogs_snapshot %}
+      <span class="finance-period-order__warn muted">нет snapshot закупки по части позиций</span>
+      {% endif %}
+    </div>
+
+    <div class="table-wrap">
+      <table class="tbl finance-period-lines">
+        <thead>
+          <tr>
+            <th>Товар</th>
+            <th class="right">Кол-во</th>
+            <th class="right">Цена ₽</th>
+            <th class="right">Цена €</th>
+            <th class="right">Курс</th>
+            <th class="right">Себест. ₽</th>
+            <th class="right">Маржа ₽</th>
+            <th class="right">Маржа %</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for line in order.lines %}
+          <tr>
+            <td>
+              <div class="finance-period-lines__title">{{ line.title }}</div>
+              {% if line.variant_label %}
+              <div class="finance-period-lines__variant muted">{{ line.variant_label }}</div>
+              {% endif %}
+              {% if line.missing_snapshot %}
+              <div class="finance-period-lines__warn muted">нет snapshot</div>
+              {% endif %}
+            </td>
+            <td class="right mono">{{ line.quantity }}</td>
+            <td class="right mono">{{ format_finance_rub(line.sale_rub, with_symbol=False) }}</td>
+            <td class="right mono">{% if line.supplier_price_eur is not none %}{{ format_eur(line.supplier_price_eur) }}{% else %}—{% endif %}</td>
+            <td class="right mono">{{ format_eur(line.eur_rate) }}</td>
+            <td class="right mono">{{ format_finance_rub(line.cogs_rub) }}</td>
+            <td class="right mono{% if line.margin_rub > 0 %} finance-report__profit{% endif %}">{{ format_finance_rub(line.margin_rub) }}</td>
+            <td class="right mono">{% if line.margin_percent %}{{ line.margin_percent }}%{% else %}—{% endif %}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <dl class="finance-period-order__footer finance-period-order__calc">
+      <div class="kv kv--calc-start">
+        <span class="kv__k">Стоимость (товары)</span>
+        <span class="kv__v mono">{{ format_finance_rub(order.items_subtotal_rub, with_symbol=False) }}</span>
+      </div>
+      {% if order.promo_code_applied %}
+      <div class="kv kv--calc-deduct">
+        <span class="kv__k">Промокод {{ order.promo_code_applied }}</span>
+        <span class="kv__v mono finance-promo-referral-summary__value--expense">{% if order.promo_discount_rub and order.promo_discount_rub > 0 %}−{{ format_finance_rub(order.promo_discount_rub, with_symbol=False) }}{% else %}—{% endif %}</span>
+      </div>
+      {% endif %}
+      <div class="kv kv--calc-add">
+        <span class="kv__k">Доставка</span>
+        <span class="kv__v mono">+{{ format_finance_rub(order.delivery_rub, with_symbol=False) }}</span>
+      </div>
+      <div class="kv kv--calc-total">
+        <span class="kv__k">= Оборот</span>
+        <span class="kv__v mono">{{ format_finance_rub(order.turnover, with_symbol=False) }}</span>
+      </div>
+      <div class="kv kv--calc-deduct">
+        <span class="kv__k">Себестоимость</span>
+        <span class="kv__v mono finance-promo-referral-summary__value--expense">−{{ format_finance_rub(order.cogs_rub, with_symbol=False) }}</span>
+      </div>
+      <div class="kv kv--calc-deduct">
+        <span class="kv__k">Доставка</span>
+        <span class="kv__v mono finance-promo-referral-summary__value--expense">−{{ format_finance_rub(order.delivery_rub, with_symbol=False) }}</span>
+      </div>
+      <div class="kv kv--calc-total">
+        <span class="kv__k">= Валовая прибыль</span>
+        <span class="kv__v mono">{{ format_finance_rub(order.gross_profit, with_symbol=False) }}</span>
+      </div>
+      <div class="kv kv--calc-deduct">
+        <span class="kv__k">Комиссия ({{ order.commission_percent }}%)</span>
+        <span class="kv__v mono finance-promo-referral-summary__value--expense">−{{ format_finance_rub(order.commission_rub, with_symbol=False) }}</span>
+      </div>
+      {% if order.referral_commission_amount_rub is not none and order.referral_commission_amount_rub > 0 %}
+      <div class="kv kv--calc-deduct">
+        <span class="kv__k">Реферал{% if order.referral_commission_percent is not none %} ({{ order.referral_commission_percent }}%){% endif %}{% if order.referral_referrer_id %} · <a class="finance-period-order__link" href="/internal/admin/customers?id={{ order.referral_referrer_id }}">{{ order.referral_referrer_name or ('#' ~ order.referral_referrer_id) }}</a>{% endif %}</span>
+        <span class="kv__v mono finance-promo-referral-summary__value--expense">−{{ format_finance_rub(order.referral_commission_amount_rub, with_symbol=False) }}</span>
+      </div>
+      {% endif %}
+      <div class="kv kv--calc-total kv--calc-result">
+        <span class="kv__k">= Чистая прибыль</span>
+        <span class="kv__v mono finance-report__profit">{{ format_finance_rub(order.net_profit, with_symbol=False) }}</span>
+      </div>
+      <div class="kv kv--calc-compensation">
+        <span class="kv__k">Компенсация</span>
+        <span class="kv__v mono">{{ format_finance_rub(order.compensation, with_symbol=False) }}</span>
+      </div>
+    </dl>
+  </div>
+</details>
+{% endfor %}

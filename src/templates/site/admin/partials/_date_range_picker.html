@@ -1,0 +1,73 @@
+{% set picker_id = picker_id | default("admin-date-range") %}
+{% set form_id = form_id | default("admin-orders-filters") %}
+{% set date_from = date_from | default("") %}
+{% set date_to = date_to | default("") %}
+<div
+  id="{{ picker_id }}"
+  class="admin-date-range"
+  data-date-range-picker
+  data-form-id="{{ form_id }}"
+  data-applied-from="{{ date_from }}"
+  data-applied-to="{{ date_to }}"
+>
+  <input type="hidden" name="date_from" value="{{ date_from }}" data-date-range-from />
+  <input type="hidden" name="date_to" value="{{ date_to }}" data-date-range-to />
+  <button
+    type="button"
+    class="admin-date-range__trigger"
+    data-date-range-trigger
+    aria-haspopup="dialog"
+    aria-expanded="false"
+    aria-label="Выбор периода дат"
+  >
+    {{ admin_icon("calendar", "ico ico--sm admin-date-range__icon") }}
+    <span class="admin-date-range__label" data-date-range-label></span>
+  </button>
+  <div
+    class="admin-date-range__popover"
+    data-date-range-popover
+    hidden
+    role="dialog"
+    aria-label="Календарь выбора периода"
+  >
+    <div class="admin-date-range__modes" role="tablist" aria-label="Режим выбора периода">
+      <button
+        type="button"
+        class="admin-date-range__mode is-active"
+        role="tab"
+        data-date-range-mode="days"
+        aria-selected="true"
+      >Дни</button>
+      <button
+        type="button"
+        class="admin-date-range__mode"
+        role="tab"
+        data-date-range-mode="months"
+        aria-selected="false"
+      >Месяцы</button>
+    </div>
+    <div class="admin-date-range__nav">
+      <button type="button" class="btn btn--sm btn--icon btn--ghost" data-date-range-prev aria-label="Предыдущий месяц">
+        {{ admin_icon("chevron-left", "ico ico--sm") }}
+      </button>
+      <div class="admin-date-range__selects">
+        <select class="select admin-date-range__month" data-date-range-month aria-label="Месяц"></select>
+        <select class="select admin-date-range__year" data-date-range-year aria-label="Год"></select>
+      </div>
+      <button type="button" class="btn btn--sm btn--icon btn--ghost" data-date-range-next aria-label="Следующий месяц">
+        {{ admin_icon("chevron-right", "ico ico--sm") }}
+      </button>
+    </div>
+    <div class="admin-date-range__days-panel" data-date-range-days-panel>
+      <div class="admin-date-range__weekdays" data-date-range-weekdays aria-hidden="true"></div>
+      <div class="admin-date-range__grid" data-date-range-grid role="grid" aria-label="Дни месяца"></div>
+    </div>
+    <div class="admin-date-range__months-panel" data-date-range-months-panel hidden>
+      <div class="admin-date-range__month-grid" data-date-range-month-grid role="grid" aria-label="Месяцы года"></div>
+    </div>
+    <div class="admin-date-range__actions">
+      <button type="button" class="btn btn--sm btn--ghost" data-date-range-reset aria-label="Сбросить период">Сбросить</button>
+      <button type="button" class="btn btn--sm btn--primary" data-date-range-apply disabled aria-label="Применить период">Применить</button>
+    </div>
+  </div>
+</div>

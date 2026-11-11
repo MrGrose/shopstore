@@ -1,0 +1,57 @@
+{% set gp_margin = finance_margin_percent(totals.gross_profit, totals.turnover) %}
+{% set np_margin = finance_margin_percent(totals.net_profit, totals.turnover) %}
+{% set promo_referral = promo_referral_summary %}
+<section class="finance-summary finance-period-summary" aria-label="Итоги периода">
+  <div class="finance-summary__card">
+    <div class="finance-summary__label">Заказы</div>
+    <div class="finance-summary__value mono">{{ format_finance_count(totals.orders_count) }}</div>
+    <div class="finance-summary__sub">товаров {{ format_finance_count(totals.items_count) }}</div>
+  </div>
+  <div class="finance-summary__card">
+    <div class="finance-summary__label">Оборот</div>
+    <div class="finance-summary__value mono">{{ format_finance_rub(totals.turnover) }}</div>
+    {% if promo_referral.promo_discount_total > 0 %}
+    <div class="finance-summary__sub">скидки уже в обороте</div>
+    {% endif %}
+  </div>
+  <div class="finance-summary__card">
+    <div class="finance-summary__label">Себестоимость</div>
+    <div class="finance-summary__value mono">{{ format_finance_rub(totals.cogs_rub) }}</div>
+  </div>
+  <div class="finance-summary__card">
+    <div class="finance-summary__label">Доставка</div>
+    <div class="finance-summary__value mono">{{ format_finance_rub(totals.delivery_rub) }}</div>
+  </div>
+  <div class="finance-summary__card">
+    <div class="finance-summary__label">Промокоды</div>
+    <div class="finance-summary__value mono finance-summary__value--expense">
+      {% if promo_referral.promo_discount_total > 0 %}−{{ format_finance_rub(promo_referral.promo_discount_total) }}{% else %}—{% endif %}
+    </div>
+    <div class="finance-summary__sub">
+      {% if promo_referral.promo_orders_count > 0 %}{{ format_finance_count(promo_referral.promo_orders_count) }} заказов{% else %}не применялись{% endif %}
+    </div>
+  </div>
+  <div class="finance-summary__card">
+    <div class="finance-summary__label">Рефералы</div>
+    <div class="finance-summary__value mono finance-summary__value--expense">
+      {% if promo_referral.referral_payout_total > 0 %}−{{ format_finance_rub(promo_referral.referral_payout_total) }}{% else %}—{% endif %}
+    </div>
+    <div class="finance-summary__sub">
+      {% if promo_referral.referral_orders_count > 0 %}{{ format_finance_count(promo_referral.referral_orders_count) }} начислений{% else %}не было{% endif %}
+    </div>
+  </div>
+  <div class="finance-summary__card">
+    <div class="finance-summary__label">Валовая прибыль</div>
+    <div class="finance-summary__value mono finance-summary__value--profit">{{ format_finance_rub(totals.gross_profit) }}</div>
+    {% if gp_margin %}<div class="finance-summary__sub">{{ gp_margin }}% от оборота</div>{% endif %}
+  </div>
+  <div class="finance-summary__card">
+    <div class="finance-summary__label">Чистая прибыль</div>
+    <div class="finance-summary__value mono finance-summary__value--profit">{{ format_finance_rub(totals.net_profit) }}</div>
+    {% if np_margin %}<div class="finance-summary__sub">{{ np_margin }}% от оборота</div>{% endif %}
+  </div>
+  <div class="finance-summary__card">
+    <div class="finance-summary__label">Компенсация</div>
+    <div class="finance-summary__value mono">{{ format_finance_rub(totals.compensation) }}</div>
+  </div>
+</section>

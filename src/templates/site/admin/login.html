@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#2997ff" />
+  <title>Вход — Shopstore Admin</title>
+  <link rel="stylesheet" href="/static/site/css/storefront.css?v=admin-site-3" />
+  <link rel="stylesheet" href="/static/site/css/admin.css?v=admin-design-62" />
+</head>
+<body class="admin-body auth-page">
+  <main class="auth-card card">
+    <div class="auth__brand">
+      <span class="brand__mark">SP</span>
+      <b>Shopstore</b>
+    </div>
+    <p class="auth__sub">Панель администратора</p>
+    <div class="card__body" style="padding-top:0;">
+      {% if error %}
+      <div class="admin-flash admin-flash-error" style="margin-bottom:12px;">{{ error }}</div>
+      {% endif %}
+      {% if panel_login_enabled %}
+      <form method="post" action="/internal/admin/login" class="auth__form stack--sm">
+        <input type="hidden" name="next" value="{{ next_url }}" />
+        <div class="field">
+          <label class="label" for="username">Логин</label>
+          <input id="username" name="username" type="text" autocomplete="username" required class="input" />
+        </div>
+        <div class="field">
+          <label class="label" for="password">Пароль</label>
+          <input id="password" name="password" type="password" autocomplete="current-password" required class="input" />
+        </div>
+        <button type="submit" class="btn btn--primary btn--block" style="height:40px;">Войти в панель</button>
+      </form>
+      {% else %}
+      <p class="muted">Задайте <code>ADMIN_PANEL_LOGIN</code> и <code>ADMIN_PANEL_PASSWORD</code> в <code>.env</code> и перезапустите API.</p>
+      {% endif %}
+      <p class="auth__foot">Доступ только для авторизованных сотрудников</p>
+    </div>
+  </main>
+</body>
+</html>

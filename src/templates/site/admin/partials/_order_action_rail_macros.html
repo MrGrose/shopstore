@@ -1,0 +1,19 @@
+{% macro rail_state_class(step_id, rail_steps) -%}
+{%- set st = rail_steps.get(step_id, {}).get('state') -%}
+{%- if st == 'active' %} orders-detail-action--active{%- elif st == 'locked' %} orders-detail-action--locked{%- elif st == 'done' %} orders-detail-action--done{%- endif -%}
+{%- endmacro %}
+
+{% macro rail_open_attr(step_id, rail_steps) -%}
+{%- if rail_steps.get(step_id, {}).get('open') %} open{% endif -%}
+{%- endmacro %}
+
+{% macro rail_locked_hint(step_id, rail_steps) -%}
+{%- set step = rail_steps.get(step_id, {}) -%}
+{%- if step.get('state') == 'locked' and step.get('hint') and not step.get('body_editable') -%}
+<p class="orders-field__hint orders-action-rail-hint">{{ step.hint }}</p>
+{%- endif -%}
+{%- endmacro %}
+
+{% macro rail_step_interactive(step_id, rail_steps) -%}
+{{ rail_steps.get(step_id, {}).get('state') == 'active' }}
+{%- endmacro %}

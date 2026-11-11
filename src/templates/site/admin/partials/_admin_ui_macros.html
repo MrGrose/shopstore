@@ -1,0 +1,48 @@
+{% macro admin_page_head(title, sub=none, back_href=none, back_label='Назад', title_modifier='', sub_id=none, sub_inner_id=none, title_count=none, title_count_id=none) %}
+<header class="admin-page__head">
+  {% if back_href %}
+  <a href="{{ back_href }}" class="admin-page__back">
+    {{ admin_icon("arrow-left", "ico ico--sm") }}
+    {{ back_label }}
+  </a>
+  {% endif %}
+  <div class="admin-page__head-row">
+    <div class="admin-page__head-text">
+      <h1 class="admin-page__title{% if title_modifier %} admin-page__title--{{ title_modifier }}{% endif %}">{{ title }}{% if title_count is not none %} — <span{% if title_count_id %} id="{{ title_count_id }}"{% endif %}>{{ title_count }}</span>{% endif %}</h1>
+      {% if sub %}<p class="admin-page__sub"{% if sub_id %} id="{{ sub_id }}"{% endif %}>{% if sub_inner_id %}<span id="{{ sub_inner_id }}">{{ sub }}</span>{% else %}{{ sub }}{% endif %}</p>{% endif %}
+    </div>
+    {% if caller %}<div class="admin-page__actions">{{ caller() }}</div>{% endif %}
+  </div>
+</header>
+{% endmacro %}
+
+{% macro admin_btn_pill(label, href=none, type='button', variant='', size='', extra_class='', form=none, formaction=none) %}
+{% set classes = ['admin-btn-pill'] %}
+{% if size == 'sm' %}{% set _ = classes.append('admin-btn-pill--sm') %}{% endif %}
+{% if variant %}{% set _ = classes.append('admin-btn-pill--' ~ variant) %}{% endif %}
+{% if extra_class %}{% set _ = classes.append(extra_class) %}{% endif %}
+{% if href %}
+<a href="{{ href }}" class="{{ classes | join(' ') }}">{{ label }}</a>
+{% else %}
+<button
+  type="{{ type }}"
+  class="{{ classes | join(' ') }}"
+  {% if form %}form="{{ form }}"{% endif %}
+  {% if formaction %}formaction="{{ formaction }}"{% endif %}
+>{{ label }}</button>
+{% endif %}
+{% endmacro %}
+
+{% macro admin_filter_pill(label, active=false, count=none, href=none, tag='button', variant='', extra_class='', pill_id=none) %}
+{% set classes = ['admin-filter-pill'] %}
+{% if active %}{% set _ = classes.append('is-active') %}{% endif %}
+{% if variant %}{% set _ = classes.append('admin-filter-pill--' ~ variant) %}{% endif %}
+{% if extra_class %}{% set _ = classes.append(extra_class) %}{% endif %}
+{% if href %}
+<a href="{{ href }}" class="{{ classes | join(' ') }}"{% if pill_id %} id="{{ pill_id }}"{% endif %}>{{ label }}{% if count is not none %} <span class="admin-filter-pill__count">{{ count }}</span>{% endif %}</a>
+{% elif tag == 'a' %}
+<a class="{{ classes | join(' ') }}"{% if pill_id %} id="{{ pill_id }}"{% endif %}>{{ label }}{% if count is not none %} <span class="admin-filter-pill__count">{{ count }}</span>{% endif %}</a>
+{% else %}
+<button type="button" class="{{ classes | join(' ') }}"{% if pill_id %} id="{{ pill_id }}"{% endif %}>{{ label }}{% if count is not none %} <span class="admin-filter-pill__count">{{ count }}</span>{% endif %}</button>
+{% endif %}
+{% endmacro %}
